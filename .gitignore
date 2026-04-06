@@ -42,3 +42,8 @@ dist-ssr
 
 # Optional jest cache
 jest-cache
+
+# Temporary push scripts
+push_to_github.sh
+push_to_github.bat
+fix_github_push.bat
