@@ -1,0 +1,317 @@
+/* 样式变量定义 */
+
+// 颜色变量
+:root {
+  // 主色调
+  --color-primary: #667eea;
+  --color-primary-light: #764ba2;
+  --color-primary-lighter: #8a63d2;
+  --color-primary-lightest: #d9caf9;
+  --color-primary-dark: #4c63d4;
+  --color-primary-darker: #3a4fc7;
+  
+  // 成功色
+  --color-success: #67c23a;
+  --color-success-light: #85ce61;
+  --color-success-lighter: #b3e19d;
+  --color-success-lightest: #f0f9eb;
+  --color-success-dark: #5daf34;
+  --color-success-darker: #529b2e;
+  
+  // 警告色
+  --color-warning: #e6a23c;
+  --color-warning-light: #ebb563;
+  --color-warning-lighter: #f3d19e;
+  --color-warning-lightest: #fdf6ec;
+  --color-warning-dark: #cf9236;
+  --color-warning-darker: #b88230;
+  
+  // 危险色
+  --color-danger: #f56c6c;
+  --color-danger-light: #f78989;
+  --color-danger-lighter: #fab6b6;
+  --color-danger-lightest: #fef0f0;
+  --color-danger-dark: #dd6161;
+  --color-danger-darker: #c45656;
+  
+  // 信息色
+  --color-info: #909399;
+  --color-info-light: #a6a9ad;
+  --color-info-lighter: #c8c9cc;
+  --color-info-lightest: #f4f4f5;
+  --color-info-dark: #82848a;
+  --color-info-darker: #74767a;
+  
+  // 中性色
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-gray-50: #fafafa;
+  --color-gray-100: #f5f5f5;
+  --color-gray-200: #eeeeee;
+  --color-gray-300: #e0e0e0;
+  --color-gray-400: #bdbdbd;
+  --color-gray-500: #9e9e9e;
+  --color-gray-600: #757575;
+  --color-gray-700: #616161;
+  --color-gray-800: #424242;
+  --color-gray-900: #212121;
+  
+  // 背景色
+  --color-bg-primary: #f5f7fa;
+  --color-bg-secondary: #ffffff;
+  --color-bg-tertiary: #f8f9fb;
+  --color-bg-card: #ffffff;
+  --color-bg-sidebar: #2c3e50;
+  --color-bg-header: #ffffff;
+  --color-bg-footer: #f8f9fb;
+  
+  // 文字色
+  --color-text-primary: #303133;
+  --color-text-regular: #606266;
+  --color-text-secondary: #909399;
+  --color-text-placeholder: #c0c4cc;
+  --color-text-disabled: #c0c4cc;
+  --color-text-light: #ffffff;
+  --color-text-dark: #000000;
+  
+  // 边框色
+  --color-border-base: #dcdfe6;
+  --color-border-light: #e4e7ed;
+  --color-border-lighter: #ebeef5;
+  --color-border-extra-light: #f2f6fc;
+  --color-border-dark: #d4d7de;
+  --color-border-darker: #cdd0d6;
+  
+  // 阴影
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.12);
+  --shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.15);
+  --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-outline: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  --shadow-none: 0 0 #0000;
+  
+  // 渐变
+  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-secondary: linear-gradient(135deg, #f56565 0%, #ed8936 100%);
+  --gradient-success: linear-gradient(135deg, #48bb78 0%, #38b2ac 100%);
+  --gradient-warning: linear-gradient(135deg, #ecc94b 0%, #ed8936 100%);
+  --gradient-danger: linear-gradient(135deg, #f56565 0%, #ed64a6 100%);
+  --gradient-info: linear-gradient(135deg, #4299e1 0%, #9f7aea 100%);
+  --gradient-dark: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+  --gradient-light: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%);
+  
+  // 边框圆角
+  --radius-none: 0;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-full: 9999px;
+  
+  // 间距
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-9: 36px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-14: 56px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-32: 128px;
+  --space-40: 160px;
+  --space-48: 192px;
+  --space-56: 224px;
+  --space-64: 256px;
+  
+  // 字体大小
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+  --text-4xl: 36px;
+  --text-5xl: 48px;
+  --text-6xl: 60px;
+  --text-7xl: 72px;
+  --text-8xl: 96px;
+  --text-9xl: 128px;
+  
+  // 行高
+  --leading-none: 1;
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+  --leading-loose: 2;
+  
+  // 字体粗细
+  --font-thin: 100;
+  --font-extralight: 200;
+  --font-light: 300;
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --font-extrabold: 800;
+  --font-black: 900;
+  
+  // 过渡动画
+  --transition-fast: 150ms;
+  --transition-base: 300ms;
+  --transition-slow: 500ms;
+  --transition-slower: 700ms;
+  --transition-slowest: 1000ms;
+  
+  // 动画曲线
+  --ease-linear: linear;
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  
+  // z-index 层级
+  --z-index-dropdown: 1000;
+  --z-index-sticky: 1020;
+  --z-index-fixed: 1030;
+  --z-index-modal-backdrop: 1040;
+  --z-index-modal: 1050;
+  --z-index-popover: 1060;
+  --z-index-tooltip: 1070;
+  --z-index-toast: 1080;
+  
+  // 容器宽度
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1536px;
+  
+  // 图表颜色
+  --chart-color-1: #667eea;
+  --chart-color-2: #764ba2;
+  --chart-color-3: #f56565;
+  --chart-color-4: #ed8936;
+  --chart-color-5: #ecc94b;
+  --chart-color-6: #48bb78;
+  --chart-color-7: #38b2ac;
+  --chart-color-8: #4299e1;
+  --chart-color-9: #9f7aea;
+  --chart-color-10: #ed64a6;
+  
+  // 消息气泡颜色
+  --message-user-bg: var(--color-primary);
+  --message-user-text: var(--color-white);
+  --message-assistant-bg: var(--color-gray-100);
+  --message-assistant-text: var(--color-text-primary);
+  --message-system-bg: var(--color-info-lightest);
+  --message-system-text: var(--color-info);
+  
+  // 分数颜色
+  --score-excellent: var(--color-success);
+  --score-good: var(--color-warning);
+  --score-fair: var(--color-info);
+  --score-poor: var(--color-danger);
+  
+  // 状态颜色
+  --status-success: var(--color-success);
+  --status-warning: var(--color-warning);
+  --status-error: var(--color-danger);
+  --status-info: var(--color-info);
+  --status-disabled: var(--color-gray-400);
+  
+  // 难度颜色
+  --difficulty-easy: var(--color-success);
+  --difficulty-medium: var(--color-warning);
+  --difficulty-hard: var(--color-danger);
+  
+  // 面试类型颜色
+  --type-technical: var(--color-primary);
+  --type-behavioral: var(--color-info);
+  --type-mixed: var(--color-success);
+  
+  // 音频波形颜色
+  --waveform-primary: var(--color-primary);
+  --waveform-secondary: var(--color-primary-light);
+  --waveform-background: var(--color-gray-100);
+  
+  // 加载动画
+  --loading-primary: var(--color-primary);
+  --loading-background: var(--color-gray-200);
+}
+
+// 暗黑模式变量
+[data-theme="dark"] {
+  // 背景色
+  --color-bg-primary: #121212;
+  --color-bg-secondary: #1e1e1e;
+  --color-bg-tertiary: #2d2d2d;
+  --color-bg-card: #1e1e1e;
+  --color-bg-sidebar: #121212;
+  --color-bg-header: #1e1e1e;
+  --color-bg-footer: #121212;
+  
+  // 文字色
+  --color-text-primary: #ffffff;
+  --color-text-regular: #b0b0b0;
+  --color-text-secondary: #808080;
+  --color-text-placeholder: #505050;
+  --color-text-disabled: #505050;
+  
+  // 边框色
+  --color-border-base: #404040;
+  --color-border-light: #505050;
+  --color-border-lighter: #606060;
+  --color-border-extra-light: #707070;
+  --color-border-dark: #303030;
+  --color-border-darker: #202020;
+  
+  // 阴影
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.3);
+  --shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.3);
+  --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  
+  // 消息气泡颜色
+  --message-user-bg: var(--color-primary-dark);
+  --message-assistant-bg: var(--color-gray-800);
+  --message-system-bg: var(--color-gray-900);
+}
+
+// 媒体查询断点
+$breakpoint-xs: 0;
+$breakpoint-sm: 576px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 992px;
+$breakpoint-xl: 1200px;
+$breakpoint-2xl: 1400px;
+
+// 导出变量供 SCSS 使用
+:export {
+  primaryColor: var(--color-primary);
+  successColor: var(--color-success);
+  warningColor: var(--color-warning);
+  dangerColor: var(--color-danger);
+  infoColor: var(--color-info);
+  
+  // 响应式断点
+  breakpointSm: $breakpoint-sm;
+  breakpointMd: $breakpoint-md;
+  breakpointLg: $breakpoint-lg;
+  breakpointXl: $breakpoint-xl;
+  breakpoint2xl: $breakpoint-2xl;
+}
