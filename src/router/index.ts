@@ -3,24 +3,23 @@ import type { RouteRecordRaw } from 'vue-router'
 
 const routes: RouteRecordRaw[] = [
   {
-    path: '/',
-    redirect: '/dashboard',
-    meta: { requiresAuth: true }
-  },
-  {
     path: '/login',
     name: 'Login',
     component: () => import('@/views/Login.vue'),
     meta: { title: '登录 - AI面试系统' }
   },
   {
-    path: '/dashboard',
-    name: 'Dashboard',
+    path: '/',
+    name: 'Main',
     component: () => import('@/views/layout/MainLayout.vue'),
-    meta: { requiresAuth: true, title: '仪表盘 - AI面试系统' },
+    meta: { requiresAuth: true },
     children: [
       {
         path: '',
+        redirect: 'interview'
+      },
+      {
+        path: 'interview',
         name: 'Interview',
         component: () => import('@/views/interview/Interview.vue'),
         meta: { title: 'AI面试 - AI面试系统' }

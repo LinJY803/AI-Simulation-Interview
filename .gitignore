@@ -47,3 +47,9 @@ jest-cache
 push_to_github.sh
 push_to_github.bat
 fix_github_push.bat
+
+# Server data and uploads
+server/data/
+server/uploads/
+server/node_modules/
+server/dist/

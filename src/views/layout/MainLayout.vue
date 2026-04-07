@@ -10,21 +10,21 @@
           @select="handleMenuSelect"
           class="header-menu"
         >
-          <el-menu-item index="/dashboard">
+          <el-menu-item index="/interview">
             <el-icon><ChatLineRound /></el-icon>
             <span>AI面试</span>
           </el-menu-item>
-          <el-menu-item index="/dashboard/history">
+          <el-menu-item index="/history">
             <el-icon><Clock /></el-icon>
             <span>面试历史</span>
           </el-menu-item>
-          <el-menu-item index="/dashboard/profile">
+          <el-menu-item index="/profile">
             <el-icon><User /></el-icon>
             <span>个人中心</span>
           </el-menu-item>
         </el-menu>
       </div>
-      
+
       <div class="header-right">
         <el-dropdown @command="handleUserCommand">
           <div class="user-info">
@@ -78,7 +78,9 @@
       width="500px"
     >
       <div class="about-content">
-        <p>AI面试系统是一个基于人工智能的智能面试平台，旨在帮助用户提升面试技能。</p>
+        <p>
+          AI面试系统是一个基于人工智能的智能面试平台，旨在帮助用户提升面试技能。
+        </p>
         <p>主要功能：</p>
         <ul>
           <li>AI面试官模拟真实面试场景</li>
@@ -87,7 +89,10 @@
           <li>面试表现评分和可视化报告</li>
           <li>面试历史记录和对比分析</li>
         </ul>
-        <p>技术栈：Vue3 + TypeScript + Vite + Pinia + Element Plus + OpenAI GPT + ECharts</p>
+        <p>
+          技术栈：Vue3 + TypeScript + Vite + Pinia + Element Plus + OpenAI GPT +
+          ECharts
+        </p>
       </div>
     </el-dialog>
   </div>
@@ -97,6 +102,7 @@
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store'
+import { ElMessage } from 'element-plus'
 import {
   ChatLineRound,
   Clock,

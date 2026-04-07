@@ -6,10 +6,15 @@
         <el-card class="user-card">
           <div class="user-info">
             <div class="avatar-section">
-              <el-avatar :size="100" :src="userInfo.avatar" class="user-avatar" />
+              <el-avatar
+                :size="100"
+                :src="userInfo.avatar"
+                class="user-avatar"
+              />
               <div class="avatar-actions">
                 <el-upload
-                  action="/api/upload/avatar"
+                  :action="avatarUploadAction"
+                  :headers="uploadHeaders"
                   :show-file-list="false"
                   :on-success="handleAvatarSuccess"
                   :before-upload="beforeAvatarUpload"
@@ -25,7 +30,7 @@
                 </el-button>
               </div>
             </div>
-            
+
             <div class="user-details">
               <h3>{{ userInfo.username }}</h3>
               <p class="user-email">
@@ -33,7 +38,9 @@
                 {{ userInfo.email }}
               </p>
               <p class="user-role">
-                <el-tag :type="userInfo.role === 'admin' ? 'danger' : 'success'">
+                <el-tag
+                  :type="userInfo.role === 'admin' ? 'danger' : 'success'"
+                >
                   {{ userInfo.role === 'admin' ? '管理员' : '普通用户' }}
                 </el-tag>
               </p>
@@ -49,7 +56,7 @@
           </div>
         </el-card>
       </el-col>
-      
+
       <el-col :span="16">
         <el-card class="stats-card">
           <template #header>
@@ -61,12 +68,14 @@
               </el-button>
             </div>
           </template>
-          
+
           <el-row :gutter="20">
             <el-col :span="6">
               <div class="stat-item">
-                <div class="stat-icon" style="background: #ecf5ff;">
-                  <el-icon color="#409eff" :size="24"><ChatLineRound /></el-icon>
+                <div class="stat-icon" style="background: #ecf5ff">
+                  <el-icon color="#409eff" :size="24"
+                    ><ChatLineRound
+                  /></el-icon>
                 </div>
                 <div class="stat-info">
                   <div class="stat-value">{{ userStats.totalInterviews }}</div>
@@ -74,46 +83,52 @@
                 </div>
               </div>
             </el-col>
-            
+
             <el-col :span="6">
               <div class="stat-item">
-                <div class="stat-icon" style="background: #f0f9eb;">
+                <div class="stat-icon" style="background: #f0f9eb">
                   <el-icon color="#67c23a" :size="24"><Check /></el-icon>
                 </div>
                 <div class="stat-info">
-                  <div class="stat-value">{{ userStats.completedInterviews }}</div>
+                  <div class="stat-value">
+                    {{ userStats.completedInterviews }}
+                  </div>
                   <div class="stat-label">完成面试</div>
                 </div>
               </div>
             </el-col>
-            
+
             <el-col :span="6">
               <div class="stat-item">
-                <div class="stat-icon" style="background: #fef0f0;">
+                <div class="stat-icon" style="background: #fef0f0">
                   <el-icon color="#f56c6c" :size="24"><TrendCharts /></el-icon>
                 </div>
                 <div class="stat-info">
-                  <div class="stat-value">{{ userStats.averageScore.toFixed(1) }}</div>
+                  <div class="stat-value">
+                    {{ userStats.averageScore.toFixed(1) }}
+                  </div>
                   <div class="stat-label">平均分数</div>
                 </div>
               </div>
             </el-col>
-            
+
             <el-col :span="6">
               <div class="stat-item">
-                <div class="stat-icon" style="background: #f4f4f5;">
+                <div class="stat-icon" style="background: #f4f4f5">
                   <el-icon color="#909399" :size="24"><Timer /></el-icon>
                 </div>
                 <div class="stat-info">
-                  <div class="stat-value">{{ formatDuration(userStats.totalDuration) }}</div>
+                  <div class="stat-value">
+                    {{ formatDuration(userStats.totalDuration) }}
+                  </div>
                   <div class="stat-label">总时长</div>
                 </div>
               </div>
             </el-col>
           </el-row>
-          
+
           <el-divider />
-          
+
           <div class="progress-stats">
             <div class="progress-item">
               <div class="progress-label">技术水平</div>
@@ -122,7 +137,7 @@
                 :color="getProgressColor('technical')"
               />
             </div>
-            
+
             <div class="progress-item">
               <div class="progress-label">沟通能力</div>
               <el-progress
@@ -130,7 +145,7 @@
                 :color="getProgressColor('communication')"
               />
             </div>
-            
+
             <div class="progress-item">
               <div class="progress-label">问题解决</div>
               <el-progress
@@ -150,7 +165,7 @@
           <template #header>
             <span>个人信息设置</span>
           </template>
-          
+
           <el-form
             ref="profileFormRef"
             :model="profileForm"
@@ -158,13 +173,16 @@
             label-width="100px"
           >
             <el-form-item label="用户名" prop="username">
-              <el-input v-model="profileForm.username" placeholder="请输入用户名" />
+              <el-input
+                v-model="profileForm.username"
+                placeholder="请输入用户名"
+              />
             </el-form-item>
-            
+
             <el-form-item label="邮箱" prop="email">
               <el-input v-model="profileForm.email" placeholder="请输入邮箱" />
             </el-form-item>
-            
+
             <el-form-item label="个人简介" prop="bio">
               <el-input
                 v-model="profileForm.bio"
@@ -175,16 +193,19 @@
                 show-word-limit
               />
             </el-form-item>
-            
+
             <el-form-item label="工作状态" prop="status">
-              <el-select v-model="profileForm.status" placeholder="请选择工作状态">
+              <el-select
+                v-model="profileForm.status"
+                placeholder="请选择工作状态"
+              >
                 <el-option label="在职" value="employed" />
                 <el-option label="求职中" value="job-seeking" />
                 <el-option label="学生" value="student" />
                 <el-option label="自由职业" value="freelancer" />
               </el-select>
             </el-form-item>
-            
+
             <el-form-item label="技术栈" prop="skills">
               <el-select
                 v-model="profileForm.skills"
@@ -203,7 +224,7 @@
                 <el-option label="Kubernetes" value="kubernetes" />
               </el-select>
             </el-form-item>
-            
+
             <el-form-item label="通知设置">
               <el-checkbox-group v-model="profileForm.notifications">
                 <el-checkbox label="email">邮件通知</el-checkbox>
@@ -211,7 +232,7 @@
                 <el-checkbox label="sms">短信通知</el-checkbox>
               </el-checkbox-group>
             </el-form-item>
-            
+
             <el-form-item>
               <el-button type="primary" :loading="saving" @click="saveProfile">
                 保存设置
@@ -221,31 +242,31 @@
           </el-form>
         </el-card>
       </el-col>
-      
+
       <el-col :span="8">
         <el-card class="security-card">
           <template #header>
             <span>账户安全</span>
           </template>
-          
+
           <div class="security-actions">
             <el-button type="primary" @click="changePassword">
               <el-icon><Lock /></el-icon>
               修改密码
             </el-button>
-            
+
             <el-button @click="manageDevices">
               <el-icon><Monitor /></el-icon>
               设备管理
             </el-button>
-            
+
             <el-button @click="viewActivityLog">
               <el-icon><Document /></el-icon>
               活动日志
             </el-button>
-            
+
             <el-divider />
-            
+
             <div class="security-info">
               <h4>安全状态</h4>
               <el-alert
@@ -256,18 +277,18 @@
                 :closable="false"
               />
             </div>
-            
+
             <el-divider />
-            
+
             <div class="danger-zone">
               <h4>危险操作</h4>
               <p class="danger-hint">这些操作可能会影响您的账户安全</p>
-              
+
               <el-button type="danger" plain @click="logoutAllDevices">
                 <el-icon><SwitchButton /></el-icon>
                 退出所有设备
               </el-button>
-              
+
               <el-button type="danger" @click="deleteAccount">
                 <el-icon><Delete /></el-icon>
                 删除账户
@@ -275,12 +296,12 @@
             </div>
           </div>
         </el-card>
-        
+
         <el-card class="preference-card mt-20">
           <template #header>
             <span>偏好设置</span>
           </template>
-          
+
           <div class="preference-settings">
             <div class="preference-item">
               <span>主题模式</span>
@@ -291,25 +312,29 @@
                 @change="toggleTheme"
               />
             </div>
-            
+
             <div class="preference-item">
               <span>语言设置</span>
-              <el-select v-model="theme.language" size="small" @change="changeLanguage">
+              <el-select
+                v-model="theme.language"
+                size="small"
+                @change="changeLanguage"
+              >
                 <el-option label="中文" value="zh-CN" />
                 <el-option label="English" value="en-US" />
               </el-select>
             </div>
-            
+
             <div class="preference-item">
               <span>动画效果</span>
               <el-switch v-model="theme.animations" />
             </div>
-            
+
             <div class="preference-item">
               <span>声音提示</span>
               <el-switch v-model="theme.sounds" />
             </div>
-            
+
             <div class="preference-item">
               <span>自动保存</span>
               <el-switch v-model="theme.autoSave" />
@@ -339,7 +364,7 @@
             show-password
           />
         </el-form-item>
-        
+
         <el-form-item label="新密码" prop="newPassword">
           <el-input
             v-model="passwordForm.newPassword"
@@ -353,7 +378,7 @@
             </span>
           </div>
         </el-form-item>
-        
+
         <el-form-item label="确认密码" prop="confirmPassword">
           <el-input
             v-model="passwordForm.confirmPassword"
@@ -362,10 +387,14 @@
           />
         </el-form-item>
       </el-form>
-      
+
       <template #footer>
         <el-button @click="passwordDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="changingPassword" @click="submitPasswordChange">
+        <el-button
+          type="primary"
+          :loading="changingPassword"
+          @click="submitPasswordChange"
+        >
           确认修改
         </el-button>
       </template>
@@ -378,9 +407,18 @@ import { ref, computed, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { api } from '@/service/api'
 
 const router = useRouter()
 const userStore = useUserStore()
+
+const avatarUploadAction = computed(() => api.upload.getAvatarUploadUrl())
+const uploadHeaders = computed<Record<string, string>>(() => {
+  const token = localStorage.getItem('token')
+  const headers: Record<string, string> = {}
+  if (token) headers.Authorization = `Bearer ${token}`
+  return headers
+})
 
 // 表单引用
 const profileFormRef = ref()
@@ -451,9 +489,7 @@ const profileRules = {
     { required: true, message: '请输入邮箱', trigger: 'blur' },
     { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
   ],
-  status: [
-    { required: true, message: '请选择工作状态', trigger: 'change' }
-  ]
+  status: [{ required: true, message: '请选择工作状态', trigger: 'change' }]
 }
 
 const passwordRules = {
@@ -483,16 +519,16 @@ const passwordRules = {
 const passwordStrength = computed(() => {
   const password = passwordForm.newPassword
   let level = 0
-  
+
   if (password.length >= 8) level++
   if (/[A-Z]/.test(password)) level++
   if (/[a-z]/.test(password)) level++
   if (/[0-9]/.test(password)) level++
   if (/[^A-Za-z0-9]/.test(password)) level++
-  
+
   const messages = ['弱', '较弱', '中等', '较强', '强']
   const colors = ['#f56c6c', '#e6a23c', '#409eff', '#67c23a', '#67c23a']
-  
+
   return {
     level: Math.min(level, 4),
     message: messages[Math.min(level, 4)],
@@ -516,7 +552,7 @@ const formatRelativeTime = (timestamp: number) => {
   const minutes = Math.floor(diff / (1000 * 60))
   const hours = Math.floor(diff / (1000 * 60 * 60))
   const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-  
+
   if (minutes < 60) {
     return `${minutes} 分钟前`
   } else if (hours < 24) {
@@ -535,7 +571,8 @@ const formatDuration = (ms: number) => {
 
 // 进度计算
 const calculateProgress = (type: string) => {
-  const baseScore = type === 'technical' ? 4.5 : type === 'communication' ? 4.0 : 4.2
+  const baseScore =
+    type === 'technical' ? 4.5 : type === 'communication' ? 4.0 : 4.2
   const progress = (baseScore / 5) * 100
   return Math.min(Math.round(progress), 100)
 }
@@ -552,8 +589,9 @@ const getProgressColor = (type: string) => {
 const getSecurityLevel = () => {
   const hasStrongPassword = passwordStrength.value.level >= 3
   const hasEmail = userInfo.email.includes('@')
-  const recentLogin = Date.now() - userInfo.lastLoginAt < 7 * 24 * 60 * 60 * 1000
-  
+  const recentLogin =
+    Date.now() - userInfo.lastLoginAt < 7 * 24 * 60 * 60 * 1000
+
   if (hasStrongPassword && hasEmail && recentLogin) {
     return {
       type: 'success' as const,
@@ -586,14 +624,14 @@ const handleAvatarSuccess = (response: any) => {
 const beforeAvatarUpload = (file: File) => {
   const isImage = file.type.startsWith('image/')
   const isLt2M = file.size / 1024 / 1024 < 2
-  
+
   if (!isImage) {
     ElMessage.error('只能上传图片文件！')
   }
   if (!isLt2M) {
     ElMessage.error('图片大小不能超过 2MB！')
   }
-  
+
   return isImage && isLt2M
 }
 
@@ -605,18 +643,18 @@ const resetAvatar = () => {
 // 个人资料操作
 const saveProfile = async () => {
   if (!profileFormRef.value) return
-  
+
   await profileFormRef.value.validate(async (valid: boolean) => {
     if (valid) {
       saving.value = true
       try {
         // 这里调用 API 保存个人资料
         // await api.user.updateProfile(profileForm)
-        
+
         // 更新用户信息
         userInfo.username = profileForm.username
         userInfo.email = profileForm.email
-        
+
         ElMessage.success('个人资料保存成功')
       } catch (error) {
         console.error('保存失败:', error)
@@ -640,14 +678,14 @@ const changePassword = () => {
 
 const submitPasswordChange = async () => {
   if (!passwordFormRef.value) return
-  
+
   await passwordFormRef.value.validate(async (valid: boolean) => {
     if (valid) {
       changingPassword.value = true
       try {
         // 这里调用 API 修改密码
         // await api.user.changePassword(passwordForm)
-        
+
         ElMessage.success('密码修改成功')
         passwordDialogVisible.value = false
         passwordFormRef.value?.resetFields()
@@ -685,10 +723,10 @@ const logoutAllDevices = async () => {
         type: 'warning'
       }
     )
-    
+
     // 这里调用 API 退出所有设备
     // await api.auth.logoutAll()
-    
+
     ElMessage.success('已退出所有设备')
   } catch {
     // 用户取消
@@ -707,7 +745,7 @@ const deleteAccount = async () => {
         inputPlaceholder: '请输入 DELETE 确认删除'
       }
     )
-    
+
     ElMessage.warning('账户删除功能需要进一步验证')
   } catch {
     // 用户取消
@@ -720,19 +758,24 @@ const toggleTheme = () => {
 }
 
 const changeLanguage = () => {
-  ElMessage.success(`语言已切换到${theme.language === 'zh-CN' ? '中文' : '英文'}`)
+  ElMessage.success(
+    `语言已切换到${theme.language === 'zh-CN' ? '中文' : '英文'}`
+  )
 }
 
 // 初始化
 onMounted(() => {
-  // 加载用户信息
-  // const user = userStore.userInfo
-  // if (user) {
-  //   Object.assign(userInfo, user)
-  // }
-  
-  // 加载统计信息
-  // loadUserStats()
+  // 从 store 加载用户信息
+  const user = userStore.userInfo
+  if (user) {
+    userInfo.id = user.id
+    userInfo.username = user.username
+    userInfo.email = user.email
+    userInfo.avatar = user.avatar
+    userInfo.role = user.role as 'admin' | 'user'
+    profileForm.username = user.username
+    profileForm.email = user.email
+  }
 })
 
 // 加载用户统计
@@ -750,31 +793,31 @@ const loadUserStats = async () => {
 <style lang="scss" scoped>
 .profile-container {
   padding: 24px;
-  
+
   .mt-20 {
     margin-top: 20px;
   }
-  
+
   .user-card {
     .user-info {
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      
+
       .avatar-section {
         position: relative;
         margin-bottom: 20px;
-        
+
         .user-avatar {
           border: 4px solid var(--color-border-lighter);
           transition: transform 0.3s;
-          
+
           &:hover {
             transform: scale(1.05);
           }
         }
-        
+
         .avatar-actions {
           margin-top: 12px;
           display: flex;
@@ -782,14 +825,14 @@ const loadUserStats = async () => {
           justify-content: center;
         }
       }
-      
+
       .user-details {
         h3 {
           margin: 0 0 8px 0;
           font-size: 20px;
           color: var(--color-text-primary);
         }
-        
+
         .user-email,
         .user-join,
         .user-last-login {
@@ -800,26 +843,26 @@ const loadUserStats = async () => {
           align-items: center;
           justify-content: center;
           gap: 6px;
-          
+
           .el-icon {
             font-size: 16px;
           }
         }
-        
+
         .user-role {
           margin: 12px 0;
         }
       }
     }
   }
-  
+
   .stats-card {
     .card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    
+
     .stat-item {
       display: flex;
       align-items: center;
@@ -827,7 +870,7 @@ const loadUserStats = async () => {
       padding: 12px;
       background: var(--color-bg-tertiary);
       border-radius: 8px;
-      
+
       .stat-icon {
         width: 48px;
         height: 48px;
@@ -836,7 +879,7 @@ const loadUserStats = async () => {
         align-items: center;
         justify-content: center;
       }
-      
+
       .stat-info {
         .stat-value {
           font-size: 24px;
@@ -845,22 +888,22 @@ const loadUserStats = async () => {
           line-height: 1;
           margin-bottom: 4px;
         }
-        
+
         .stat-label {
           font-size: 14px;
           color: var(--color-text-secondary);
         }
       }
     }
-    
+
     .progress-stats {
       .progress-item {
         margin-bottom: 16px;
-        
+
         &:last-child {
           margin-bottom: 0;
         }
-        
+
         .progress-label {
           margin-bottom: 8px;
           font-size: 14px;
@@ -870,55 +913,55 @@ const loadUserStats = async () => {
       }
     }
   }
-  
+
   .settings-card {
     :deep(.el-form-item) {
       margin-bottom: 20px;
     }
-    
+
     :deep(.el-select) {
       width: 100%;
     }
   }
-  
+
   .security-card {
     .security-actions {
       .el-button {
         width: 100%;
         margin-bottom: 12px;
-        
+
         &:last-child {
           margin-bottom: 0;
         }
       }
-      
+
       .security-info {
         margin-bottom: 16px;
-        
+
         h4 {
           margin: 0 0 12px 0;
           font-size: 16px;
           color: var(--color-text-primary);
         }
       }
-      
+
       .danger-zone {
         h4 {
           margin: 0 0 8px 0;
           font-size: 16px;
           color: var(--color-text-primary);
         }
-        
+
         .danger-hint {
           margin: 0 0 16px 0;
           font-size: 14px;
           color: var(--color-text-secondary);
         }
-        
+
         .el-button {
           width: 100%;
           margin-bottom: 12px;
-          
+
           &:last-child {
             margin-bottom: 0;
           }
@@ -926,7 +969,7 @@ const loadUserStats = async () => {
       }
     }
   }
-  
+
   .preference-card {
     .preference-settings {
       .preference-item {
@@ -935,21 +978,21 @@ const loadUserStats = async () => {
         align-items: center;
         padding: 12px 0;
         border-bottom: 1px solid var(--color-border-lighter);
-        
+
         &:last-child {
           border-bottom: none;
         }
-        
+
         span {
           font-size: 14px;
           color: var(--color-text-primary);
           font-weight: 500;
         }
-        
+
         .el-switch {
           transform: scale(0.9);
         }
-        
+
         .el-select {
           width: 120px;
         }

@@ -25,6 +25,24 @@ export default defineConfig({
     port: 3000,
     open: true,
     cors: true,
+    proxy: {
+      // 将 /api 请求代理到后端服务器（端口 3001）
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      // 将 /uploads 静态资源请求代理到后端
+      '/uploads': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      // WebSocket 代理
+      '/ws': {
+        target: 'ws://localhost:3001',
+        ws: true,
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     outDir: 'dist',

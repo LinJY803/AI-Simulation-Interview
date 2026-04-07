@@ -1,0 +1,314 @@
+/**
+ * server/src/services/openai.ts — OpenAI API 服务
+ *
+ * 封装 OpenAI API 调用，包括：
+ * 1. 流式聊天（SSE） — 用于面试官实时回复
+ * 2. 面试分析评分 — 结束面试时生成报告
+ * 3. 语音转文字（Whisper） — 处理用户语音输入
+ * 4. 文字转语音（TTS） — 播报 AI 回复
+ *
+ * 若未配置硅基流动 API Key，将直接抛错，不再回退到 mock。
+ */
+
+import OpenAI from "openai";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import type { InterviewMessage, InterviewAnalysis } from "./storage.js";
+
+// ==================== 初始化 OpenAI 客户端 ====================
+
+function loadDotEnv() {
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    path.resolve(process.cwd(), ".env"),
+    path.resolve(process.cwd(), "server", ".env"),
+    path.resolve(here, "..", "..", ".env"),
+  ];
+
+  for (const filePath of candidates) {
+    if (!fs.existsSync(filePath)) continue;
+
+    const raw = fs.readFileSync(filePath, "utf-8");
+    const lines = raw.split(/\r?\n/);
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+
+      const idx = trimmed.indexOf("=");
+      if (idx === -1) continue;
+
+      const key = trimmed.slice(0, idx).trim();
+      let value = trimmed.slice(idx + 1).trim();
+
+      if (!key) continue;
+      if (process.env[key] !== undefined) continue;
+
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+
+      process.env[key] = value;
+    }
+    return;
+  }
+}
+
+loadDotEnv();
+
+const apiKey =
+  process.env.SILICONFLOW_API_KEY || process.env.OPENAI_API_KEY || "";
+const baseURL =
+  process.env.SILICONFLOW_BASE_URL ||
+  process.env.OPENAI_BASE_URL ||
+  "https://api.siliconflow.cn/v1";
+const defaultModel =
+  process.env.SILICONFLOW_MODEL || process.env.OPENAI_MODEL || "deepseek-chat";
+const allowedModels = new Set(
+  (
+    process.env.SILICONFLOW_ALLOWED_MODELS ||
+    process.env.OPENAI_ALLOWED_MODELS ||
+    "deepseek-chat,deepseek-ai/DeepSeek-V3"
+  )
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
+);
+
+/** 是否配置了有效的 API Key */
+export const isOpenAIConfigured =
+  !!apiKey &&
+  apiKey !== "your_openai_api_key_here" &&
+  apiKey !== "your_api_key_here";
+
+let openai: OpenAI | null = null;
+
+if (isOpenAIConfigured) {
+  openai = new OpenAI({ apiKey, baseURL });
+  console.log("[AI] 已配置（SiliconFlow 兼容模式），模型:", defaultModel);
+} else {
+  console.log("[AI] 未配置 API Key，AI 功能将不可用");
+}
+
+function ensureAIClient() {
+  if (!openai) {
+    throw new Error(
+      "未配置硅基流动密钥，请在 server/.env 中设置 SILICONFLOW_API_KEY（或 OPENAI_API_KEY）",
+    );
+  }
+  return openai;
+}
+
+function resolveModel(requested?: string) {
+  if (requested) {
+    if (!allowedModels.has(requested)) {
+      throw new Error(`模型不可用: ${requested}`);
+    }
+    return requested;
+  }
+
+  if (allowedModels.has(defaultModel)) return defaultModel;
+  const first = Array.from(allowedModels)[0];
+  if (!first) throw new Error("未配置可用模型");
+  return first;
+}
+
+function normalizeErrorMessage(error: any): string {
+  const apiErrorMessage =
+    error?.error?.message ||
+    error?.response?.data?.error?.message ||
+    error?.response?.data?.message;
+  return apiErrorMessage || error?.message || "未知错误";
+}
+
+function canRetryByModel(error: any): boolean {
+  const status = error?.status ?? error?.response?.status;
+  if (status === 400 || status === 404) return true;
+  const msg = String(normalizeErrorMessage(error)).toLowerCase();
+  return msg.includes("model") || msg.includes("not found");
+}
+
+function modelCandidates(requested?: string): string[] {
+  if (requested) return [resolveModel(requested)];
+  const primary = resolveModel();
+  const all = Array.from(allowedModels);
+  return [primary, ...all.filter((m) => m !== primary)];
+}
+
+// ==================== 面试官 System Prompt ====================
+
+const INTERVIEWER_SYSTEM_PROMPT = `你是一位资深的技术面试官，正在进行一场模拟面试。请遵循以下规则：
+1. 根据候选人的回答，提出有针对性的追问
+2. 考察维度：技术深度、项目经验、系统设计、问题解决能力
+3. 每次只问一个问题，等候选人回答后再追问
+4. 语气专业但友好，遇到回答不好时给予鼓励
+5. 不要重复已经问过的问题
+6. 如果候选人回答得很好，可以适当深入或换个话题
+7. 回复简洁，控制在 100 字以内`;
+
+const ANALYSIS_SYSTEM_PROMPT = `你是一个专业的面试评估系统。请根据面试对话记录，
+从三个维度（1-5分）对候选人进行评估。
+请严格按以下 JSON 格式回复，不要包含任何其他文字：
+{
+  "technicalScore": 4.0,
+  "communicationScore": 3.5,
+  "problemSolvingScore": 4.2,
+  "overallScore": 3.9,
+  "strengths": ["优势1", "优势2", "优势3"],
+  "weaknesses": ["劣势1", "劣势2"],
+  "suggestions": ["建议1", "建议2", "建议3"]
+}`;
+
+// ==================== 导出方法 ====================
+
+/**
+ * 流式聊天 — 返回 AsyncGenerator，每次 yield 一段文本
+ *
+ * 使用方式：
+ *   for await (const chunk of streamChat(messages)) {
+ *     res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`)
+ *   }
+ */
+export async function* streamChat(
+  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
+  options?: { model?: string; temperature?: number },
+): AsyncGenerator<string> {
+  const client = ensureAIClient();
+  let lastError: any = null;
+
+  for (const model of modelCandidates(options?.model)) {
+    try {
+      const stream = await client.chat.completions.create({
+        model,
+        messages: [
+          { role: "system", content: INTERVIEWER_SYSTEM_PROMPT },
+          ...messages,
+        ],
+        stream: true,
+        temperature: options?.temperature ?? 0.7,
+      });
+
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content;
+        if (content) {
+          yield content;
+        }
+      }
+      return;
+    } catch (error: any) {
+      lastError = error;
+      if (!canRetryByModel(error)) {
+        throw new Error(`AI 流式请求失败: ${normalizeErrorMessage(error)}`);
+      }
+    }
+  }
+
+  throw new Error(
+    `AI 流式请求失败（模型不可用）: ${normalizeErrorMessage(lastError)}`,
+  );
+}
+
+/**
+ * 面试分析评分 — 根据对话记录生成分析报告
+ */
+export async function analyzeInterview(
+  messages: InterviewMessage[],
+): Promise<InterviewAnalysis> {
+  const client = ensureAIClient();
+
+  // 真实模式
+  const chatMessages = messages.map((m) => ({
+    role: (m.role === "user" ? "user" : "assistant") as "user" | "assistant",
+    content: `[${m.role === "assistant" ? "面试官" : "候选人"}]: ${m.content}`,
+  }));
+
+  let response: any = null;
+  let lastError: any = null;
+
+  for (const model of modelCandidates()) {
+    try {
+      response = await client.chat.completions.create({
+        model,
+        messages: [
+          { role: "system", content: ANALYSIS_SYSTEM_PROMPT },
+          ...chatMessages,
+        ],
+        temperature: 0.3,
+      });
+      break;
+    } catch (error: any) {
+      lastError = error;
+      if (!canRetryByModel(error)) {
+        throw new Error(`AI 评估请求失败: ${normalizeErrorMessage(error)}`);
+      }
+    }
+  }
+
+  if (!response) {
+    throw new Error(
+      `AI 评估请求失败（模型不可用）: ${normalizeErrorMessage(lastError)}`,
+    );
+  }
+
+  const content = response.choices[0]?.message?.content || "{}";
+  try {
+    const jsonStr = content
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+    return JSON.parse(jsonStr) as InterviewAnalysis;
+  } catch {
+    console.error("[AI] 解析分析结果失败:", content);
+    throw new Error("AI 分析结果解析失败");
+  }
+}
+
+/**
+ * 语音转文字（Whisper）
+ */
+export async function speechToText(
+  audioBuffer: Buffer,
+  mimeType: string,
+): Promise<{ text: string; language?: string }> {
+  const client = ensureAIClient();
+
+  const ext = mimeType.includes("webm")
+    ? "webm"
+    : mimeType.includes("wav")
+      ? "wav"
+      : "mp3";
+  const file = new File([new Uint8Array(audioBuffer)], `recording.${ext}`, {
+    type: mimeType,
+  });
+
+  const transcription = await client.audio.transcriptions.create({
+    model: "whisper-1",
+    file,
+    language: "zh",
+  });
+
+  return { text: transcription.text };
+}
+
+/**
+ * 文字转语音（TTS）
+ */
+export async function textToSpeech(
+  text: string,
+  voice: string = "alloy",
+): Promise<Buffer> {
+  const client = ensureAIClient();
+
+  const response = await client.audio.speech.create({
+    model: "tts-1",
+    input: text,
+    voice: voice as "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer",
+    response_format: "mp3",
+  });
+
+  return Buffer.from(await response.arrayBuffer());
+}

@@ -88,7 +88,9 @@
                 :color="getScoreColor(technicalScore)"
                 :show-text="false"
               />
-              <span class="score-number">{{ technicalScore.toFixed(1) }}/5.0</span>
+              <span class="score-number"
+                >{{ technicalScore.toFixed(1) }}/5.0</span
+              >
             </div>
             <div class="score-item">
               <label>沟通表达</label>
@@ -97,7 +99,9 @@
                 :color="getScoreColor(communicationScore)"
                 :show-text="false"
               />
-              <span class="score-number">{{ communicationScore.toFixed(1) }}/5.0</span>
+              <span class="score-number"
+                >{{ communicationScore.toFixed(1) }}/5.0</span
+              >
             </div>
             <div class="score-item">
               <label>问题解决</label>
@@ -106,7 +110,9 @@
                 :color="getScoreColor(problemSolvingScore)"
                 :show-text="false"
               />
-              <span class="score-number">{{ problemSolvingScore.toFixed(1) }}/5.0</span>
+              <span class="score-number"
+                >{{ problemSolvingScore.toFixed(1) }}/5.0</span
+              >
             </div>
           </div>
         </div>
@@ -183,7 +189,11 @@
           </div>
         </template>
         <div class="analysis-content">
-          <div v-for="(analysis, index) in detailedAnalysis" :key="index" class="analysis-item">
+          <div
+            v-for="(analysis, index) in detailedAnalysis"
+            :key="index"
+            class="analysis-item"
+          >
             <div class="analysis-header">
               <h4>{{ analysis.title }}</h4>
               <el-tag :type="getTagType(analysis.score)">
@@ -214,9 +224,13 @@
           </div>
         </template>
         <div class="dialogue-content">
-          <div v-for="message in keyMessages" :key="message.id" class="dialogue-item">
+          <div
+            v-for="message in keyMessages"
+            :key="message.id"
+            class="dialogue-item"
+          >
             <div class="dialogue-header">
-              <el-avatar 
+              <el-avatar
                 :size="32"
                 :icon="message.role === 'assistant' ? 'Avatar' : 'User'"
                 :class="message.role"
@@ -225,15 +239,25 @@
                 <div class="dialogue-name">
                   {{ message.role === 'assistant' ? 'AI 面试官' : '应聘者' }}
                 </div>
-                <div class="dialogue-time">{{ formatTime(message.timestamp) }}</div>
+                <div class="dialogue-time">
+                  {{ formatTime(message.timestamp) }}
+                </div>
               </div>
-              <el-tag v-if="message.analysis" :type="message.analysis.type" size="small">
+              <el-tag
+                v-if="message.analysis"
+                :type="message.analysis.type"
+                size="small"
+              >
                 {{ message.analysis.label }}
               </el-tag>
             </div>
             <div class="dialogue-message">{{ message.content }}</div>
             <div v-if="message.feedback" class="dialogue-feedback">
-              <el-alert :type="message.feedback.type" :title="message.feedback.title" :closable="false">
+              <el-alert
+                :type="message.feedback.type"
+                :title="message.feedback.title"
+                :closable="false"
+              >
                 {{ message.feedback.content }}
               </el-alert>
             </div>
@@ -257,7 +281,9 @@
           <div class="summary-tips">
             <h4>提升建议</h4>
             <ul>
-              <li v-for="(tip, index) in summary.tips" :key="index">{{ tip }}</li>
+              <li v-for="(tip, index) in summary.tips" :key="index">
+                {{ tip }}
+              </li>
             </ul>
           </div>
           <div class="summary-next">
@@ -288,6 +314,10 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useInterviewStore } from '@/store'
 import * as echarts from 'echarts'
+import { ElMessage } from 'element-plus'
+
+type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger'
+type AlertType = 'success' | 'warning' | 'info' | 'error'
 
 const route = useRoute()
 const router = useRouter()
@@ -304,28 +334,36 @@ let pieChart: echarts.ECharts | null = null
 // 获取面试数据
 const interviewId = route.params.id as string
 const interview = computed(() => {
-  return interviewStore.getInterviewById(interviewId) || {
-    title: '面试报告',
-    startTime: Date.now(),
-    duration: 0,
-    messages: [],
-    analysis: {
-      technicalScore: 0,
-      communicationScore: 0,
-      problemSolvingScore: 0,
-      overallScore: 0,
-      strengths: [],
-      weaknesses: [],
-      suggestions: []
+  return (
+    interviewStore.getInterviewById(interviewId) || {
+      title: '面试报告',
+      startTime: Date.now(),
+      duration: 0,
+      messages: [],
+      analysis: {
+        technicalScore: 0,
+        communicationScore: 0,
+        problemSolvingScore: 0,
+        overallScore: 0,
+        strengths: [],
+        weaknesses: [],
+        suggestions: []
+      }
     }
-  }
+  )
 })
 
 // 计算属性
 const overallScore = computed(() => interview.value.analysis?.overallScore || 0)
-const technicalScore = computed(() => interview.value.analysis?.technicalScore || 0)
-const communicationScore = computed(() => interview.value.analysis?.communicationScore || 0)
-const problemSolvingScore = computed(() => interview.value.analysis?.problemSolvingScore || 0)
+const technicalScore = computed(
+  () => interview.value.analysis?.technicalScore || 0
+)
+const communicationScore = computed(
+  () => interview.value.analysis?.communicationScore || 0
+)
+const problemSolvingScore = computed(
+  () => interview.value.analysis?.problemSolvingScore || 0
+)
 const strengths = computed(() => interview.value.analysis?.strengths || [])
 const suggestions = computed(() => interview.value.analysis?.suggestions || [])
 
@@ -334,19 +372,22 @@ const detailedAnalysis = computed(() => [
   {
     title: '技术知识掌握',
     score: technicalScore.value,
-    description: '评估您对相关技术的理解深度和广度，包括基础概念、框架使用、最佳实践等。',
+    description:
+      '评估您对相关技术的理解深度和广度，包括基础概念、框架使用、最佳实践等。',
     examples: ['对 Vue3 响应式原理的理解', 'TypeScript 类型系统的应用']
   },
   {
     title: '问题解决能力',
     score: problemSolvingScore.value,
-    description: '评估您分析问题、设计方案和实施解决方案的能力，包括算法思维和系统设计。',
+    description:
+      '评估您分析问题、设计方案和实施解决方案的能力，包括算法思维和系统设计。',
     examples: ['复杂问题的分解思路', '系统设计的权衡考虑']
   },
   {
     title: '沟通表达能力',
     score: communicationScore.value,
-    description: '评估您清晰表达思想、逻辑陈述和有效沟通的能力，包括回答问题的条理性。',
+    description:
+      '评估您清晰表达思想、逻辑陈述和有效沟通的能力，包括回答问题的条理性。',
     examples: ['技术概念的通俗解释', '项目经验的清晰描述']
   }
 ])
@@ -357,18 +398,25 @@ const keyMessages = computed(() => {
   // 提取有意义的对话
   return messages.slice(0, 5).map((msg, index) => ({
     ...msg,
-    analysis: index % 2 === 0 ? { type: 'success', label: '优秀回答' } : null,
-    feedback: index === 1 ? {
-      type: 'warning',
-      title: '改进建议',
-      content: '可以更详细地描述技术实现细节'
-    } : null
+    analysis:
+      index % 2 === 0
+        ? { type: 'success' as TagType, label: '优秀回答' }
+        : null,
+    feedback:
+      index === 1
+        ? {
+            type: 'warning' as AlertType,
+            title: '改进建议',
+            content: '可以更详细地描述技术实现细节'
+          }
+        : null
   }))
 })
 
 // 总结数据
 const summary = computed(() => ({
-  overall: '您在这次面试中展现了扎实的技术基础和良好的沟通能力。特别是在问题解决方面表现出色，能够快速理解问题并提出解决方案。',
+  overall:
+    '您在这次面试中展现了扎实的技术基础和良好的沟通能力。特别是在问题解决方面表现出色，能够快速理解问题并提出解决方案。',
   tips: [
     '加强系统设计相关知识的积累',
     '练习更多实际场景的技术问题',
@@ -409,7 +457,7 @@ const getScoreColor = (score: number) => {
   return '#909399'
 }
 
-const getTagType = (score: number) => {
+const getTagType = (score: number): TagType => {
   if (score >= 4) return 'success'
   if (score >= 3) return 'warning'
   return 'danger'
@@ -437,12 +485,12 @@ const downloadReport = () => {
 
 // 开始新的面试
 const startNewInterview = () => {
-  router.push('/dashboard')
+  router.push('/interview')
 }
 
 // 查看历史记录
 const viewHistory = () => {
-  router.push('/dashboard/history')
+  router.push('/history')
 }
 
 // 初始化雷达图
@@ -890,7 +938,8 @@ onUnmounted(() => {
             color: #303133;
           }
 
-          p, ul {
+          p,
+          ul {
             color: #606266;
             line-height: 1.6;
           }

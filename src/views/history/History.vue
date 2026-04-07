@@ -378,7 +378,7 @@ const drawerVisible = ref(false)
 const selectedInterview = ref<any>(null)
 
 // 状态标签映射
-const statusLabels = {
+const statusLabels: Record<string, string> = {
   ongoing: '进行中',
   completed: '已完成',
   canceled: '已取消'
@@ -457,7 +457,7 @@ const getScoreColor = (score: number) => {
 
 // 查看报告
 const viewReport = (interviewId: string) => {
-  router.push(`/dashboard/report/${interviewId}`)
+  router.push(`/report/${interviewId}`)
 }
 
 // 删除面试记录
@@ -513,8 +513,48 @@ const handleExport = (format: string) => {
 }
 
 onMounted(() => {
-  // 可以在这里加载面试历史数据
+  // 如果没有历史数据，加载模拟数据
+  if (interviewStore.interviewHistory.length === 0) {
+    loadMockHistory()
+  }
 })
+
+// 加载模拟历史数据
+const loadMockHistory = () => {
+  const positions = ['前端开发工程师', '后端开发工程师', '全栈工程师', '算法工程师']
+  const difficulties = ['简单', '中等', '困难']
+  
+  for (let i = 0; i < 5; i++) {
+    const startTime = Date.now() - i * 3 * 86400000 - Math.random() * 86400000
+    const duration = (15 + Math.floor(Math.random() * 45)) * 60 * 1000
+    const tech = +(3 + Math.random() * 2).toFixed(1)
+    const comm = +(3 + Math.random() * 2).toFixed(1)
+    const prob = +(3 + Math.random() * 2).toFixed(1)
+
+    interviewStore.interviewHistory.push({
+      id: `interview_mock_${i}`,
+      title: `${positions[i % positions.length]} - ${difficulties[i % 3]}难度`,
+      startTime,
+      endTime: startTime + duration,
+      duration,
+      status: i === 0 ? 'ongoing' : 'completed',
+      score: i === 0 ? undefined : +((tech + comm + prob) / 3).toFixed(1),
+      messages: i === 0 ? [
+        { id: 'm1', content: '你好！请先做一个自我介绍。', role: 'assistant', timestamp: startTime },
+        { id: 'm2', content: '你好，我是一名前端工程师。', role: 'user', timestamp: startTime + 60000 },
+      ] : [],
+      analysis: i === 0 ? undefined : {
+        technicalScore: tech,
+        communicationScore: comm,
+        problemSolvingScore: prob,
+        overallScore: +((tech + comm + prob) / 3).toFixed(1),
+        strengths: ['对核心技术概念有扎实的理解', '能够清晰地表达技术方案和思路', '具备良好的问题分析和解决能力'],
+        weaknesses: ['部分高级概念需要进一步深入学习', '系统设计经验有待积累'],
+        suggestions: ['建议多参与大型项目实践', '加强分布式系统和性能优化相关知识', '练习在白板上进行系统设计和算法推导'],
+      }
+    })
+  }
+}
 </script>
 
 <style lang="scss" scoped>

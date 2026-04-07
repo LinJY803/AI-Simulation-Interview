@@ -1,0 +1,16 @@
+[Storage] 已创建默认用户: admin/123456, user/123456
+[OpenAI] 未配置 API Key，将使用 Mock 模式
+╔══════════════════════════════════════════════╗
+║       AI Interview Backend Server          ║
+╠══════════════════════════════════════════════╣
+║  HTTP:     http://localhost:3001            ║
+║  WebSocket: ws://localhost:3001/ws          ║
+║  Health:   http://localhost:3001/api/health ║
+║  默认账号: admin / 123456                    ║
+╚══════════════════════════════════════════════╝
+[00:50:19] POST /stream - 200 (1237ms)
+[00:50:31] POST /stream - 200 (1198ms)
+[00:56:00] POST /stream - 200 (912ms)
+[00:56:39] POST /stream - 200 (1150ms)
+[00:56:46] POST /stream - 200 (1099ms)
+[01:05:30] POST /stream - 200 (1166ms)

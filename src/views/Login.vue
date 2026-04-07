@@ -72,8 +72,12 @@
         <div class="demo-accounts">
           <el-divider content-position="center">演示账号</el-divider>
           <div class="demo-buttons">
-            <el-button size="small" @click="useDemoAccount('admin')">管理员</el-button>
-            <el-button size="small" @click="useDemoAccount('user')">普通用户</el-button>
+            <el-button size="small" @click="useDemoAccount('admin')"
+              >管理员</el-button
+            >
+            <el-button size="small" @click="useDemoAccount('user')"
+              >普通用户</el-button
+            >
           </div>
         </div>
       </div>
@@ -93,7 +97,10 @@
         label-width="80px"
       >
         <el-form-item label="用户名" prop="username">
-          <el-input v-model="registerForm.username" placeholder="请输入用户名" />
+          <el-input
+            v-model="registerForm.username"
+            placeholder="请输入用户名"
+          />
         </el-form-item>
         <el-form-item label="邮箱" prop="email">
           <el-input v-model="registerForm.email" placeholder="请输入邮箱" />
@@ -117,7 +124,11 @@
       </el-form>
       <template #footer>
         <el-button @click="registerDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="registerLoading" @click="handleRegisterSubmit">
+        <el-button
+          type="primary"
+          :loading="registerLoading"
+          @click="handleRegisterSubmit"
+        >
           注册
         </el-button>
       </template>
@@ -199,16 +210,26 @@ const registerRules = {
 const handleLogin = async () => {
   if (!loginFormRef.value) return
 
-  await loginFormRef.value.validate(async (valid) => {
+  await loginFormRef.value.validate(async (valid: boolean) => {
     if (valid) {
       loading.value = true
       try {
-        const response = await api.auth.login(loginForm.username, loginForm.password)
-        
+        const response = await api.auth.login(
+          loginForm.username,
+          loginForm.password
+        )
+
         if (response.code === 200 || response.success) {
+          // 存储token
+          if (loginForm.remember) {
+            localStorage.setItem('token', response.data.token)
+          } else {
+            sessionStorage.setItem('token', response.data.token)
+          }
+
           userStore.setToken(response.data.token)
           userStore.setUserInfo(response.data.userInfo)
-          ElMessage.success('登录成功')
+          ElMessage.success(response.message || '登录成功')
           router.push('/')
         } else {
           ElMessage.error(response.message || '登录失败')
@@ -231,7 +252,7 @@ const handleRegister = () => {
 const handleRegisterSubmit = async () => {
   if (!registerFormRef.value) return
 
-  await registerFormRef.value.validate(async (valid) => {
+  await registerFormRef.value.validate(async (valid: boolean) => {
     if (valid) {
       registerLoading.value = true
       try {
@@ -242,12 +263,15 @@ const handleRegisterSubmit = async () => {
         })
 
         if (response.code === 200 || response.success) {
+          const username = registerForm.username
+          const password = registerForm.password
           ElMessage.success('注册成功，请登录')
           registerDialogVisible.value = false
           // 清空表单
           registerFormRef.value.resetFields()
           // 自动填充用户名
-          loginForm.username = registerForm.username
+          loginForm.username = username
+          loginForm.password = password
         } else {
           ElMessage.error(response.message || '注册失败')
         }
@@ -264,10 +288,10 @@ const handleRegisterSubmit = async () => {
 const useDemoAccount = (type: string) => {
   if (type === 'admin') {
     loginForm.username = 'admin'
-    loginForm.password = 'admin123'
+    loginForm.password = '123456'
   } else {
     loginForm.username = 'user'
-    loginForm.password = 'user123'
+    loginForm.password = '123456'
   }
 }
 </script>
@@ -430,7 +454,8 @@ const useDemoAccount = (type: string) => {
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(0, 0) rotate(0deg);
   }
   25% {

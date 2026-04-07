@@ -1,0 +1,12 @@
+Port 3000 is in use, trying another one...
+Port 3001 is in use, trying another one...
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m1448[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m3002[22m/[39m
+[2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
+[2m17:02:04[22m [36m[1m[vite][22m[39m [32m.env.development changed, restarting server...[39m
+[2m17:02:04[22m [36m[1m[vite][22m[39m server restarted.
+[2m17:34:32[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue, /src/views/Login.vue?vue&type=style&index=0&scoped=08aaad4e&lang.scss[22m
+[2m00:10:43[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue[22m
+[2m00:11:11[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue[22m
