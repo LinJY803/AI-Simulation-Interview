@@ -3,7 +3,7 @@
     <!-- 顶部导航栏 -->
     <el-header class="layout-header">
       <div class="header-left">
-        <h1 class="logo">AI 面试系统</h1>
+        <h1 class="logo">{{ preferenceStore.t('appName') }}</h1>
         <el-menu
           :default-active="activeMenu"
           mode="horizontal"
@@ -12,15 +12,15 @@
         >
           <el-menu-item index="/interview">
             <el-icon><ChatLineRound /></el-icon>
-            <span>AI面试</span>
+            <span>{{ preferenceStore.t('menuInterview') }}</span>
           </el-menu-item>
           <el-menu-item index="/history">
             <el-icon><Clock /></el-icon>
-            <span>面试历史</span>
+            <span>{{ preferenceStore.t('menuHistory') }}</span>
           </el-menu-item>
           <el-menu-item index="/profile">
             <el-icon><User /></el-icon>
-            <span>个人中心</span>
+            <span>{{ preferenceStore.t('menuProfile') }}</span>
           </el-menu-item>
         </el-menu>
       </div>
@@ -36,15 +36,15 @@
             <el-dropdown-menu>
               <el-dropdown-item command="profile">
                 <el-icon><User /></el-icon>
-                个人资料
+                {{ preferenceStore.t('userProfile') }}
               </el-dropdown-item>
               <el-dropdown-item command="settings">
                 <el-icon><Setting /></el-icon>
-                设置
+                {{ preferenceStore.t('settings') }}
               </el-dropdown-item>
               <el-dropdown-item divided command="logout">
                 <el-icon><SwitchButton /></el-icon>
-                退出登录
+                {{ preferenceStore.t('logout') }}
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -60,13 +60,22 @@
     <!-- 底部信息 -->
     <el-footer class="layout-footer">
       <div class="footer-content">
-        <p>© 2024 AI面试系统. 基于 Vue3 + TypeScript + OpenAI GPT 构建</p>
+        <p>
+          © 2024 {{ preferenceStore.t('appName') }}.
+          {{ preferenceStore.t('footerDesc') }}
+        </p>
         <p class="footer-links">
-          <a href="#" @click.prevent="showAbout">关于我们</a>
+          <a href="#" @click.prevent="showAbout">{{
+            preferenceStore.t('about')
+          }}</a>
           <span> | </span>
-          <a href="#" @click.prevent="showHelp">帮助中心</a>
+          <a href="#" @click.prevent="showHelp">{{
+            preferenceStore.t('help')
+          }}</a>
           <span> | </span>
-          <a href="#" @click.prevent="showPrivacy">隐私政策</a>
+          <a href="#" @click.prevent="showPrivacy">{{
+            preferenceStore.t('privacy')
+          }}</a>
         </p>
       </div>
     </el-footer>
@@ -101,7 +110,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useUserStore } from '@/store'
+import { usePreferenceStore, useUserStore } from '@/store'
 import { ElMessage } from 'element-plus'
 import {
   ChatLineRound,
@@ -115,6 +124,7 @@ import {
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const preferenceStore = usePreferenceStore()
 
 const aboutDialogVisible = ref(false)
 const helpDialogVisible = ref(false)
@@ -134,11 +144,10 @@ const handleMenuSelect = (index: string) => {
 const handleUserCommand = (command: string) => {
   switch (command) {
     case 'profile':
-      router.push('/dashboard/profile')
+      router.push('/profile')
       break
     case 'settings':
-      // 这里可以跳转到设置页面
-      console.log('设置')
+      router.push({ path: '/profile', query: { section: 'settings' } })
       break
     case 'logout':
       handleLogout()

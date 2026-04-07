@@ -21,12 +21,12 @@
                 >
                   <el-button type="primary" size="small">
                     <el-icon><Upload /></el-icon>
-                    更换头像
+                    {{ t('changeAvatar') }}
                   </el-button>
                 </el-upload>
                 <el-button size="small" @click="resetAvatar">
                   <el-icon><Refresh /></el-icon>
-                  重置
+                  {{ t('reset') }}
                 </el-button>
               </div>
             </div>
@@ -41,16 +41,17 @@
                 <el-tag
                   :type="userInfo.role === 'admin' ? 'danger' : 'success'"
                 >
-                  {{ userInfo.role === 'admin' ? '管理员' : '普通用户' }}
+                  {{ userInfo.role === 'admin' ? t('admin') : t('normalUser') }}
                 </el-tag>
               </p>
               <p class="user-join">
                 <el-icon><Calendar /></el-icon>
-                加入于 {{ formatDate(userInfo.createdAt) }}
+                {{ t('joinedAt') }} {{ formatDate(userInfo.createdAt) }}
               </p>
               <p class="user-last-login">
                 <el-icon><Clock /></el-icon>
-                上次登录 {{ formatRelativeTime(userInfo.lastLoginAt) }}
+                {{ t('lastLogin') }}
+                {{ formatRelativeTime(userInfo.lastLoginAt) }}
               </p>
             </div>
           </div>
@@ -61,10 +62,10 @@
         <el-card class="stats-card">
           <template #header>
             <div class="card-header">
-              <span>个人统计</span>
+              <span>{{ t('profileStats') }}</span>
               <el-button type="text" @click="refreshStats">
                 <el-icon><Refresh /></el-icon>
-                刷新
+                {{ t('refresh') }}
               </el-button>
             </div>
           </template>
@@ -79,7 +80,7 @@
                 </div>
                 <div class="stat-info">
                   <div class="stat-value">{{ userStats.totalInterviews }}</div>
-                  <div class="stat-label">总面试次数</div>
+                  <div class="stat-label">{{ t('totalInterviews') }}</div>
                 </div>
               </div>
             </el-col>
@@ -93,7 +94,7 @@
                   <div class="stat-value">
                     {{ userStats.completedInterviews }}
                   </div>
-                  <div class="stat-label">完成面试</div>
+                  <div class="stat-label">{{ t('completedInterviews') }}</div>
                 </div>
               </div>
             </el-col>
@@ -107,7 +108,7 @@
                   <div class="stat-value">
                     {{ userStats.averageScore.toFixed(1) }}
                   </div>
-                  <div class="stat-label">平均分数</div>
+                  <div class="stat-label">{{ t('averageScore') }}</div>
                 </div>
               </div>
             </el-col>
@@ -121,7 +122,7 @@
                   <div class="stat-value">
                     {{ formatDuration(userStats.totalDuration) }}
                   </div>
-                  <div class="stat-label">总时长</div>
+                  <div class="stat-label">{{ t('totalDuration') }}</div>
                 </div>
               </div>
             </el-col>
@@ -131,7 +132,7 @@
 
           <div class="progress-stats">
             <div class="progress-item">
-              <div class="progress-label">技术水平</div>
+              <div class="progress-label">{{ t('technicalLevel') }}</div>
               <el-progress
                 :percentage="calculateProgress('technical')"
                 :color="getProgressColor('technical')"
@@ -139,7 +140,7 @@
             </div>
 
             <div class="progress-item">
-              <div class="progress-label">沟通能力</div>
+              <div class="progress-label">{{ t('communication') }}</div>
               <el-progress
                 :percentage="calculateProgress('communication')"
                 :color="getProgressColor('communication')"
@@ -147,7 +148,7 @@
             </div>
 
             <div class="progress-item">
-              <div class="progress-label">问题解决</div>
+              <div class="progress-label">{{ t('problemSolving') }}</div>
               <el-progress
                 :percentage="calculateProgress('problemSolving')"
                 :color="getProgressColor('problemSolving')"
@@ -161,9 +162,9 @@
     <!-- 设置表单 -->
     <el-row :gutter="20" class="mt-20">
       <el-col :span="16">
-        <el-card class="settings-card">
+        <el-card ref="settingsCardRef" class="settings-card">
           <template #header>
-            <span>个人信息设置</span>
+            <span>{{ t('profileSettings') }}</span>
           </template>
 
           <el-form
@@ -199,10 +200,9 @@
                 v-model="profileForm.status"
                 placeholder="请选择工作状态"
               >
-                <el-option label="在职" value="employed" />
-                <el-option label="求职中" value="job-seeking" />
-                <el-option label="学生" value="student" />
-                <el-option label="自由职业" value="freelancer" />
+                <el-option label="正常" value="active" />
+                <el-option label="未激活" value="inactive" />
+                <el-option label="禁用" value="banned" />
               </el-select>
             </el-form-item>
 
@@ -235,9 +235,9 @@
 
             <el-form-item>
               <el-button type="primary" :loading="saving" @click="saveProfile">
-                保存设置
+                {{ t('saveSettings') }}
               </el-button>
-              <el-button @click="resetProfile">重置</el-button>
+              <el-button @click="resetProfile">{{ t('reset') }}</el-button>
             </el-form-item>
           </el-form>
         </el-card>
@@ -297,7 +297,7 @@
           </div>
         </el-card>
 
-        <el-card class="preference-card mt-20">
+        <el-card ref="preferenceCardRef" class="preference-card mt-20">
           <template #header>
             <span>偏好设置</span>
           </template>
@@ -327,17 +327,23 @@
 
             <div class="preference-item">
               <span>动画效果</span>
-              <el-switch v-model="theme.animations" />
+              <el-switch
+                v-model="theme.animations"
+                @change="onPreferenceChange"
+              />
             </div>
 
             <div class="preference-item">
               <span>声音提示</span>
-              <el-switch v-model="theme.sounds" />
+              <el-switch v-model="theme.sounds" @change="onPreferenceChange" />
             </div>
 
             <div class="preference-item">
               <span>自动保存</span>
-              <el-switch v-model="theme.autoSave" />
+              <el-switch
+                v-model="theme.autoSave"
+                @change="onPreferenceChange"
+              />
             </div>
           </div>
         </el-card>
@@ -403,14 +409,59 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useUserStore } from '@/store'
+import { ref, computed, reactive, onMounted, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { usePreferenceStore, useUserStore } from '@/store'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { api } from '@/service/api'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
+const preferenceStore = usePreferenceStore()
+const t = (key: string) => {
+  const en: Record<string, string> = {
+    changeAvatar: 'Change Avatar',
+    reset: 'Reset',
+    admin: 'Admin',
+    normalUser: 'User',
+    joinedAt: 'Joined',
+    lastLogin: 'Last Login',
+    profileStats: 'Statistics',
+    refresh: 'Refresh',
+    totalInterviews: 'Total Interviews',
+    completedInterviews: 'Completed',
+    averageScore: 'Average Score',
+    totalDuration: 'Total Duration',
+    technicalLevel: 'Technical',
+    communication: 'Communication',
+    problemSolving: 'Problem Solving',
+    profileSettings: 'Profile Settings',
+    saveSettings: 'Save'
+  }
+  if (preferenceStore.language === 'en-US') return en[key] || key
+  return (
+    {
+      changeAvatar: '更换头像',
+      reset: '重置',
+      admin: '管理员',
+      normalUser: '普通用户',
+      joinedAt: '加入于',
+      lastLogin: '上次登录',
+      profileStats: '个人统计',
+      refresh: '刷新',
+      totalInterviews: '总面试次数',
+      completedInterviews: '完成面试',
+      averageScore: '平均分数',
+      totalDuration: '总时长',
+      technicalLevel: '技术水平',
+      communication: '沟通能力',
+      problemSolving: '问题解决',
+      profileSettings: '个人信息设置',
+      saveSettings: '保存设置'
+    }[key] || key
+  )
+}
 
 const avatarUploadAction = computed(() => api.upload.getAvatarUploadUrl())
 const uploadHeaders = computed<Record<string, string>>(() => {
@@ -423,6 +474,8 @@ const uploadHeaders = computed<Record<string, string>>(() => {
 // 表单引用
 const profileFormRef = ref()
 const passwordFormRef = ref()
+const settingsCardRef = ref<any>()
+const preferenceCardRef = ref<any>()
 
 // 状态变量
 const saving = ref(false)
@@ -454,11 +507,18 @@ const userStats = reactive({
 })
 
 // 个人资料表单
-const profileForm = reactive({
+const profileForm = reactive<{
+  username: string
+  email: string
+  bio: string
+  status: 'active' | 'inactive' | 'banned'
+  skills: string[]
+  notifications: Array<'email' | 'push' | 'sms'>
+}>({
   username: '测试用户',
   email: 'test@example.com',
   bio: '前端工程师，热爱学习和分享技术。',
-  status: 'employed',
+  status: 'active',
   skills: ['vue', 'typescript', 'nodejs'],
   notifications: ['email', 'push']
 })
@@ -472,11 +532,26 @@ const passwordForm = reactive({
 
 // 主题设置
 const theme = reactive({
-  darkMode: false,
-  language: 'zh-CN',
-  animations: true,
-  sounds: true,
-  autoSave: true
+  darkMode: preferenceStore.themeMode === 'dark',
+  language: preferenceStore.language,
+  animations: preferenceStore.animations,
+  sounds: preferenceStore.sounds,
+  autoSave: preferenceStore.autoSave
+})
+const profileSnapshot = ref<{
+  username: string
+  email: string
+  bio: string
+  status: 'active' | 'inactive' | 'banned'
+  skills: string[]
+  notifications: Array<'email' | 'push' | 'sms'>
+}>({
+  username: profileForm.username,
+  email: profileForm.email,
+  bio: profileForm.bio,
+  status: profileForm.status,
+  skills: [...profileForm.skills],
+  notifications: [...profileForm.notifications]
 })
 
 // 表单验证规则
@@ -614,9 +689,18 @@ const getSecurityLevel = () => {
 }
 
 // 头像上传处理
-const handleAvatarSuccess = (response: any) => {
+const handleAvatarSuccess = async (response: any) => {
   if (response.code === 200) {
     userInfo.avatar = response.data.url
+    try {
+      await api.user.updateProfile({ avatar: response.data.url })
+    } catch {}
+    if (userStore.userInfo) {
+      userStore.setUserInfo({
+        ...userStore.userInfo,
+        avatar: response.data.url
+      })
+    }
     ElMessage.success('头像上传成功')
   }
 }
@@ -648,12 +732,41 @@ const saveProfile = async () => {
     if (valid) {
       saving.value = true
       try {
-        // 这里调用 API 保存个人资料
-        // await api.user.updateProfile(profileForm)
+        const payload = {
+          username: profileForm.username,
+          email: profileForm.email,
+          bio: profileForm.bio,
+          status: profileForm.status,
+          skills: profileForm.skills,
+          notifications: profileForm.notifications
+        }
+        const result = await api.user.updateProfile(payload)
+        const saved = result.data
 
-        // 更新用户信息
-        userInfo.username = profileForm.username
-        userInfo.email = profileForm.email
+        userInfo.username = saved.username || profileForm.username
+        userInfo.email = saved.email || profileForm.email
+        userInfo.status = (saved.status as any) || userInfo.status
+        profileForm.bio = saved.bio || profileForm.bio
+        profileForm.status = (saved.status as any) || profileForm.status
+        profileForm.skills = (saved.skills || profileForm.skills) as string[]
+        profileForm.notifications = (saved.notifications ||
+          profileForm.notifications) as Array<'email' | 'push' | 'sms'>
+
+        if (userStore.userInfo) {
+          userStore.setUserInfo({
+            ...userStore.userInfo,
+            username: userInfo.username,
+            email: userInfo.email
+          })
+        }
+        profileSnapshot.value = {
+          username: profileForm.username,
+          email: profileForm.email,
+          bio: profileForm.bio,
+          status: profileForm.status,
+          skills: [...profileForm.skills],
+          notifications: [...profileForm.notifications]
+        }
 
         ElMessage.success('个人资料保存成功')
       } catch (error) {
@@ -667,7 +780,12 @@ const saveProfile = async () => {
 }
 
 const resetProfile = () => {
-  profileFormRef.value?.resetFields()
+  profileForm.username = profileSnapshot.value.username
+  profileForm.email = profileSnapshot.value.email
+  profileForm.bio = profileSnapshot.value.bio
+  profileForm.status = profileSnapshot.value.status
+  profileForm.skills = [...profileSnapshot.value.skills]
+  profileForm.notifications = [...profileSnapshot.value.notifications]
   ElMessage.info('表单已重置')
 }
 
@@ -683,8 +801,10 @@ const submitPasswordChange = async () => {
     if (valid) {
       changingPassword.value = true
       try {
-        // 这里调用 API 修改密码
-        // await api.user.changePassword(passwordForm)
+        await api.user.changePassword({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword
+        })
 
         ElMessage.success('密码修改成功')
         passwordDialogVisible.value = false
@@ -700,7 +820,8 @@ const submitPasswordChange = async () => {
 }
 
 // 其他操作
-const refreshStats = () => {
+const refreshStats = async () => {
+  await loadUserStats()
   ElMessage.success('统计数据已刷新')
 }
 
@@ -724,10 +845,11 @@ const logoutAllDevices = async () => {
       }
     )
 
-    // 这里调用 API 退出所有设备
-    // await api.auth.logoutAll()
+    await api.auth.logoutAll()
 
     ElMessage.success('已退出所有设备')
+    userStore.logout()
+    router.push('/login')
   } catch {
     // 用户取消
   }
@@ -754,13 +876,33 @@ const deleteAccount = async () => {
 
 // 主题和语言
 const toggleTheme = () => {
+  preferenceStore.applyTheme(theme.darkMode ? 'dark' : 'light')
   ElMessage.success(`已切换到${theme.darkMode ? '暗黑' : '明亮'}主题`)
 }
 
 const changeLanguage = () => {
+  preferenceStore.applyLanguage(theme.language as 'zh-CN' | 'en-US')
   ElMessage.success(
     `语言已切换到${theme.language === 'zh-CN' ? '中文' : '英文'}`
   )
+}
+
+const onPreferenceChange = () => {
+  preferenceStore.setAnimations(theme.animations)
+  preferenceStore.setSounds(theme.sounds)
+  preferenceStore.setAutoSave(theme.autoSave)
+}
+
+const scrollToSection = async (section: string) => {
+  await nextTick()
+  const target =
+    section === 'settings'
+      ? preferenceCardRef.value || settingsCardRef.value
+      : settingsCardRef.value
+  const el = target?.$el || target
+  if (el?.scrollIntoView) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 }
 
 // 初始化
@@ -776,16 +918,54 @@ onMounted(() => {
     profileForm.username = user.username
     profileForm.email = user.email
   }
+  loadProfile()
+  loadUserStats()
+  const section = route.query.section
+  if (typeof section === 'string' && section) {
+    scrollToSection(section)
+  }
 })
 
 // 加载用户统计
 const loadUserStats = async () => {
   try {
-    // 这里调用 API 获取用户统计
-    // const stats = await api.user.getStats()
-    // Object.assign(userStats, stats)
+    const result = await api.user.getStats()
+    Object.assign(userStats, result.data)
   } catch (error) {
     console.error('加载统计失败:', error)
+  }
+}
+
+const loadProfile = async () => {
+  try {
+    const result = await api.user.getProfile()
+    const p = result.data
+    userInfo.id = p.id || userInfo.id
+    userInfo.username = p.username || userInfo.username
+    userInfo.email = p.email || userInfo.email
+    userInfo.avatar = p.avatar || userInfo.avatar
+    userInfo.role = (p.role as any) || userInfo.role
+    userInfo.createdAt = p.createdAt || userInfo.createdAt
+    userInfo.lastLoginAt = p.lastLoginAt || userInfo.lastLoginAt
+    userInfo.status = (p.status as any) || userInfo.status
+    profileForm.username = p.username || profileForm.username
+    profileForm.email = p.email || profileForm.email
+    profileForm.bio = p.bio || ''
+    profileForm.status = (p.status as any) || 'active'
+    profileForm.skills = (p.skills || []) as string[]
+    profileForm.notifications = (p.notifications || ['email']) as Array<
+      'email' | 'push' | 'sms'
+    >
+    profileSnapshot.value = {
+      username: profileForm.username,
+      email: profileForm.email,
+      bio: profileForm.bio,
+      status: profileForm.status,
+      skills: [...profileForm.skills],
+      notifications: [...profileForm.notifications]
+    }
+  } catch (error) {
+    console.error('加载用户资料失败:', error)
   }
 }
 </script>

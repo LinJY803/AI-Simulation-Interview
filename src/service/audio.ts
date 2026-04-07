@@ -1,5 +1,5 @@
 // 音频录制和播放服务
-class AudioService {
+export class AudioService {
   private mediaRecorder: MediaRecorder | null = null;
   private audioChunks: Blob[] = [];
   private audioContext: AudioContext | null = null;

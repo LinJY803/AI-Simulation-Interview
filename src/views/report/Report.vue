@@ -313,6 +313,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useInterviewStore } from '@/store'
+import { api } from '@/service/api'
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
 
@@ -464,23 +465,100 @@ const getTagType = (score: number): TagType => {
 }
 
 // 处理导出
-const handleExport = (format: string) => {
-  switch (format) {
-    case 'pdf':
-      ElMessage.info('导出为 PDF 格式')
-      break
-    case 'html':
-      ElMessage.info('导出为 HTML 格式')
-      break
-    case 'image':
-      ElMessage.info('导出为图片格式')
-      break
+const triggerBlobDownload = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+const buildLocalReportText = () => {
+  const lines: string[] = []
+  lines.push(`标题: ${interview.value.title}`)
+  lines.push(`开始时间: ${formatDate(interview.value.startTime)}`)
+  lines.push(`时长: ${formatDuration(interview.value.duration)}`)
+  lines.push(`综合得分: ${overallScore.value.toFixed(1)}`)
+  lines.push('')
+  lines.push('对话记录:')
+  for (const m of interview.value.messages || []) {
+    lines.push(
+      `[${formatTime(m.timestamp)}] ${
+        m.role === 'assistant' ? '面试官' : '候选人'
+      }: ${m.content}`
+    )
+  }
+  return lines.join('\n')
+}
+
+const handleExport = async (format: string) => {
+  try {
+    const safeTitle = interview.value.title.replace(/[\\/:*?"<>|]/g, '_')
+    if (format === 'pdf') {
+      const htmlBlob = await api.interview.exportInterviewReport(
+        interviewId,
+        'html'
+      )
+      const html = await htmlBlob.text()
+      const printWindow = window.open('', '_blank')
+      if (!printWindow) {
+        ElMessage.error('浏览器拦截了新窗口，请允许弹窗后重试')
+        return
+      }
+      printWindow.document.write(html)
+      printWindow.document.close()
+      printWindow.focus()
+      printWindow.print()
+      ElMessage.success('已打开打印窗口，可另存为 PDF')
+      return
+    }
+    if (format === 'image') {
+      ElMessage.info('图片导出暂未开放，已为你导出 HTML')
+      const blob = await api.interview.exportInterviewReport(
+        interviewId,
+        'html'
+      )
+      triggerBlobDownload(blob, `${safeTitle}.html`)
+      return
+    }
+    const normalized = format === 'html' ? 'html' : 'txt'
+    const blob = await api.interview.exportInterviewReport(
+      interviewId,
+      normalized as 'txt' | 'html'
+    )
+    triggerBlobDownload(blob, `${safeTitle}.${normalized}`)
+    ElMessage.success('导出成功')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '导出失败'
+    if (message.includes('404') || message.includes('面试记录不存在')) {
+      const safeTitle = interview.value.title.replace(/[\\/:*?"<>|]/g, '_')
+      const normalized = format === 'html' ? 'html' : 'txt'
+      const text = buildLocalReportText()
+      if (normalized === 'html') {
+        const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>${safeTitle}</title></head><body><pre>${text}</pre></body></html>`
+        triggerBlobDownload(
+          new Blob([html], { type: 'text/html;charset=utf-8' }),
+          `${safeTitle}.html`
+        )
+      } else {
+        triggerBlobDownload(
+          new Blob([text], { type: 'text/plain;charset=utf-8' }),
+          `${safeTitle}.txt`
+        )
+      }
+      ElMessage.success('已使用本地报告导出')
+      return
+    }
+    ElMessage.error(message)
   }
 }
 
 // 下载报告
-const downloadReport = () => {
-  ElMessage.success('报告下载已开始')
+const downloadReport = async () => {
+  await handleExport('txt')
 }
 
 // 开始新的面试

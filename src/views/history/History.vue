@@ -1,10 +1,10 @@
 <template>
   <div class="history-container">
     <div class="history-header">
-      <h2>面试历史</h2>
+      <h2>{{ t('historyTitle') }}</h2>
       <el-input
         v-model="searchQuery"
-        placeholder="搜索面试记录..."
+        :placeholder="t('searchPlaceholder')"
         style="width: 300px"
         clearable
       >
@@ -20,11 +20,11 @@
         <el-col :span="6">
           <el-card class="stat-card" shadow="hover">
             <div class="stat-content">
-              <div class="stat-icon" style="background: #ecf5ff;">
+              <div class="stat-icon" style="background: #ecf5ff">
                 <el-icon color="#409eff" :size="24"><Clock /></el-icon>
               </div>
               <div class="stat-info">
-                <p class="stat-label">总面试次数</p>
+                <p class="stat-label">{{ t('totalInterviews') }}</p>
                 <p class="stat-value">{{ stats.totalCount }}</p>
               </div>
             </div>
@@ -33,11 +33,11 @@
         <el-col :span="6">
           <el-card class="stat-card" shadow="hover">
             <div class="stat-content">
-              <div class="stat-icon" style="background: #f0f9eb;">
+              <div class="stat-icon" style="background: #f0f9eb">
                 <el-icon color="#67c23a" :size="24"><Check /></el-icon>
               </div>
               <div class="stat-info">
-                <p class="stat-label">完成次数</p>
+                <p class="stat-label">{{ t('completedCount') }}</p>
                 <p class="stat-value">{{ stats.completedCount }}</p>
               </div>
             </div>
@@ -46,11 +46,11 @@
         <el-col :span="6">
           <el-card class="stat-card" shadow="hover">
             <div class="stat-content">
-              <div class="stat-icon" style="background: #fef0f0;">
+              <div class="stat-icon" style="background: #fef0f0">
                 <el-icon color="#f56c6c" :size="24"><TrendCharts /></el-icon>
               </div>
               <div class="stat-info">
-                <p class="stat-label">平均得分</p>
+                <p class="stat-label">{{ t('avgScore') }}</p>
                 <p class="stat-value">{{ stats.averageScore.toFixed(1) }}</p>
               </div>
             </div>
@@ -59,12 +59,14 @@
         <el-col :span="6">
           <el-card class="stat-card" shadow="hover">
             <div class="stat-content">
-              <div class="stat-icon" style="background: #f4f4f5;">
+              <div class="stat-icon" style="background: #f4f4f5">
                 <el-icon color="#909399" :size="24"><Timer /></el-icon>
               </div>
               <div class="stat-info">
-                <p class="stat-label">总面试时长</p>
-                <p class="stat-value">{{ formatDuration(stats.totalDuration) }}</p>
+                <p class="stat-label">{{ t('totalDuration') }}</p>
+                <p class="stat-value">
+                  {{ formatDuration(stats.totalDuration) }}
+                </p>
               </div>
             </div>
           </el-card>
@@ -76,27 +78,41 @@
     <el-card class="history-table-card">
       <template #header>
         <div class="table-header">
-          <span>面试记录</span>
+          <span>{{ t('records') }}</span>
           <div class="table-actions">
             <el-button-group>
-              <el-button :type="filterType === 'all' ? 'primary' : ''" @click="filterType = 'all'">
-                全部
+              <el-button
+                :type="filterType === 'all' ? 'primary' : ''"
+                @click="filterType = 'all'"
+              >
+                {{ t('all') }}
               </el-button>
-              <el-button :type="filterType === 'completed' ? 'primary' : ''" @click="filterType = 'completed'">
-                已完成
+              <el-button
+                :type="filterType === 'completed' ? 'primary' : ''"
+                @click="filterType = 'completed'"
+              >
+                {{ t('completed') }}
               </el-button>
-              <el-button :type="filterType === 'ongoing' ? 'primary' : ''" @click="filterType = 'ongoing'">
-                进行中
+              <el-button
+                :type="filterType === 'ongoing' ? 'primary' : ''"
+                @click="filterType = 'ongoing'"
+              >
+                {{ t('ongoing') }}
               </el-button>
             </el-button-group>
             <el-dropdown @command="handleExport">
               <el-button>
-                导出数据<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                {{ t('exportData')
+                }}<el-icon class="el-icon--right"><ArrowDown /></el-icon>
               </el-button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item command="csv">CSV 格式</el-dropdown-item>
-                  <el-dropdown-item command="excel">Excel 格式</el-dropdown-item>
+                  <el-dropdown-item command="csv">{{
+                    t('csvFormat')
+                  }}</el-dropdown-item>
+                  <el-dropdown-item command="excel">{{
+                    t('excelFormat')
+                  }}</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -110,33 +126,39 @@
         v-loading="loading"
         @row-click="handleRowClick"
       >
-        <el-table-column label="面试标题" min-width="200">
+        <el-table-column :label="t('interviewTitle')" min-width="200">
           <template #default="{ row }">
             <div class="interview-title">
-              <el-tag 
-                :type="row.status === 'completed' ? 'success' : row.status === 'ongoing' ? 'primary' : 'info'"
+              <el-tag
+                :type="
+                  row.status === 'completed'
+                    ? 'success'
+                    : row.status === 'ongoing'
+                    ? 'primary'
+                    : 'info'
+                "
                 size="small"
               >
-                {{ statusLabels[row.status] }}
+                {{ getStatusLabel(row.status) }}
               </el-tag>
               <span class="title-text">{{ row.title }}</span>
             </div>
           </template>
         </el-table-column>
-        
-        <el-table-column prop="startTime" label="开始时间" width="180">
+
+        <el-table-column prop="startTime" :label="t('startTime')" width="180">
           <template #default="{ row }">
             {{ formatDateTime(row.startTime) }}
           </template>
         </el-table-column>
-        
-        <el-table-column label="时长" width="120">
+
+        <el-table-column :label="t('duration')" width="120">
           <template #default="{ row }">
             {{ formatDuration(row.duration) }}
           </template>
         </el-table-column>
-        
-        <el-table-column label="得分" width="100">
+
+        <el-table-column :label="t('score')" width="100">
           <template #default="{ row }">
             <el-rate
               v-if="row.score"
@@ -147,25 +169,25 @@
             <span v-else class="no-score">--</span>
           </template>
         </el-table-column>
-        
-        <el-table-column label="消息数" width="100">
+
+        <el-table-column :label="t('messageCount')" width="100">
           <template #default="{ row }">
             {{ row.messages?.length || 0 }}
           </template>
         </el-table-column>
-        
-        <el-table-column label="操作" width="120" fixed="right">
+
+        <el-table-column :label="t('actions')" width="120" fixed="right">
           <template #default="{ row }">
             <el-button-group>
-              <el-button 
-                type="primary" 
+              <el-button
+                type="primary"
                 size="small"
                 @click.stop="viewReport(row.id)"
               >
                 <el-icon><Document /></el-icon>
               </el-button>
-              <el-button 
-                type="info" 
+              <el-button
+                type="info"
                 size="small"
                 @click.stop="deleteInterview(row.id)"
               >
@@ -218,11 +240,15 @@
             <div class="info-grid">
               <div class="info-item">
                 <label>状态</label>
-                <el-tag 
-                  :type="selectedInterview.status === 'completed' ? 'success' : 'primary'"
+                <el-tag
+                  :type="
+                    selectedInterview.status === 'completed'
+                      ? 'success'
+                      : 'primary'
+                  "
                   size="small"
                 >
-                  {{ statusLabels[selectedInterview.status] }}
+                  {{ getStatusLabel(selectedInterview.status) }}
                 </el-tag>
               </div>
               <div class="info-item">
@@ -231,7 +257,11 @@
               </div>
               <div class="info-item">
                 <label>结束时间</label>
-                <span>{{ selectedInterview.endTime ? formatDateTime(selectedInterview.endTime) : '--' }}</span>
+                <span>{{
+                  selectedInterview.endTime
+                    ? formatDateTime(selectedInterview.endTime)
+                    : '--'
+                }}</span>
               </div>
               <div class="info-item">
                 <label>总时长</label>
@@ -253,14 +283,14 @@
               </div>
             </template>
             <div class="message-history">
-              <div 
+              <div
                 v-for="message in selectedInterview.messages"
                 :key="message.id"
                 class="history-message"
                 :class="message.role"
               >
                 <div class="message-avatar">
-                  <el-avatar 
+                  <el-avatar
                     :size="32"
                     :icon="message.role === 'assistant' ? 'Avatar' : 'User'"
                   />
@@ -268,7 +298,9 @@
                 <div class="message-content">
                   <div class="message-name">
                     {{ message.role === 'assistant' ? 'AI 面试官' : '我' }}
-                    <span class="message-time">{{ formatTime(message.timestamp) }}</span>
+                    <span class="message-time">{{
+                      formatTime(message.timestamp)
+                    }}</span>
                   </div>
                   <div class="message-text">
                     {{ message.content }}
@@ -295,8 +327,12 @@
                   </div>
                 </div>
                 <el-progress
-                  :percentage="(selectedInterview.analysis.overallScore / 5) * 100"
-                  :color="getScoreColor(selectedInterview.analysis.overallScore)"
+                  :percentage="
+                    (selectedInterview.analysis.overallScore / 5) * 100
+                  "
+                  :color="
+                    getScoreColor(selectedInterview.analysis.overallScore)
+                  "
                 />
               </div>
 
@@ -308,22 +344,40 @@
                   <div class="score-item">
                     <label>技术能力</label>
                     <el-progress
-                      :percentage="(selectedInterview.analysis.technicalScore / 5) * 100"
-                      :color="getScoreColor(selectedInterview.analysis.technicalScore)"
+                      :percentage="
+                        (selectedInterview.analysis.technicalScore / 5) * 100
+                      "
+                      :color="
+                        getScoreColor(selectedInterview.analysis.technicalScore)
+                      "
                     />
                   </div>
                   <div class="score-item">
                     <label>沟通能力</label>
                     <el-progress
-                      :percentage="(selectedInterview.analysis.communicationScore / 5) * 100"
-                      :color="getScoreColor(selectedInterview.analysis.communicationScore)"
+                      :percentage="
+                        (selectedInterview.analysis.communicationScore / 5) *
+                        100
+                      "
+                      :color="
+                        getScoreColor(
+                          selectedInterview.analysis.communicationScore
+                        )
+                      "
                     />
                   </div>
                   <div class="score-item">
                     <label>问题解决</label>
                     <el-progress
-                      :percentage="(selectedInterview.analysis.problemSolvingScore / 5) * 100"
-                      :color="getScoreColor(selectedInterview.analysis.problemSolvingScore)"
+                      :percentage="
+                        (selectedInterview.analysis.problemSolvingScore / 5) *
+                        100
+                      "
+                      :color="
+                        getScoreColor(
+                          selectedInterview.analysis.problemSolvingScore
+                        )
+                      "
                     />
                   </div>
                 </div>
@@ -336,7 +390,10 @@
                   <el-col :span="12">
                     <h5>优势</h5>
                     <ul>
-                      <li v-for="strength in selectedInterview.analysis.strengths" :key="strength">
+                      <li
+                        v-for="strength in selectedInterview.analysis.strengths"
+                        :key="strength"
+                      >
                         {{ strength }}
                       </li>
                     </ul>
@@ -344,7 +401,11 @@
                   <el-col :span="12">
                     <h5>改进建议</h5>
                     <ul>
-                      <li v-for="suggestion in selectedInterview.analysis.suggestions" :key="suggestion">
+                      <li
+                        v-for="suggestion in selectedInterview.analysis
+                          .suggestions"
+                        :key="suggestion"
+                      >
                         {{ suggestion }}
                       </li>
                     </ul>
@@ -362,11 +423,59 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useInterviewStore } from '@/store'
+import { useInterviewStore, usePreferenceStore } from '@/store'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
 const interviewStore = useInterviewStore()
+const preferenceStore = usePreferenceStore()
+const t = (key: string) => {
+  const en: Record<string, string> = {
+    historyTitle: 'Interview History',
+    searchPlaceholder: 'Search records...',
+    totalInterviews: 'Total Interviews',
+    completedCount: 'Completed',
+    avgScore: 'Average Score',
+    totalDuration: 'Total Duration',
+    records: 'Interview Records',
+    all: 'All',
+    completed: 'Completed',
+    ongoing: 'Ongoing',
+    exportData: 'Export',
+    csvFormat: 'CSV',
+    excelFormat: 'Excel',
+    interviewTitle: 'Title',
+    startTime: 'Start Time',
+    duration: 'Duration',
+    score: 'Score',
+    messageCount: 'Messages',
+    actions: 'Actions'
+  }
+  if (preferenceStore.language === 'en-US') return en[key] || key
+  return (
+    {
+      historyTitle: '面试历史',
+      searchPlaceholder: '搜索面试记录...',
+      totalInterviews: '总面试次数',
+      completedCount: '完成次数',
+      avgScore: '平均得分',
+      totalDuration: '总面试时长',
+      records: '面试记录',
+      all: '全部',
+      completed: '已完成',
+      ongoing: '进行中',
+      exportData: '导出数据',
+      csvFormat: 'CSV 格式',
+      excelFormat: 'Excel 格式',
+      interviewTitle: '面试标题',
+      startTime: '开始时间',
+      duration: '时长',
+      score: '得分',
+      messageCount: '消息数',
+      actions: '操作'
+    }[key] || key
+  )
+}
 
 // 状态变量
 const searchQuery = ref('')
@@ -378,10 +487,23 @@ const drawerVisible = ref(false)
 const selectedInterview = ref<any>(null)
 
 // 状态标签映射
-const statusLabels: Record<string, string> = {
-  ongoing: '进行中',
-  completed: '已完成',
-  canceled: '已取消'
+const getStatusLabel = (status: string) => {
+  if (preferenceStore.language === 'en-US') {
+    return (
+      {
+        ongoing: 'Ongoing',
+        completed: 'Completed',
+        canceled: 'Canceled'
+      }[status] || status
+    )
+  }
+  return (
+    {
+      ongoing: '进行中',
+      completed: '已完成',
+      canceled: '已取消'
+    }[status] || status
+  )
 }
 
 // 计算属性
@@ -394,15 +516,18 @@ const filteredInterviews = computed(() => {
 
   // 状态筛选
   if (filterType.value !== 'all') {
-    interviews = interviews.filter(interview => interview.status === filterType.value)
+    interviews = interviews.filter(
+      interview => interview.status === filterType.value
+    )
   }
 
   // 搜索筛选
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    interviews = interviews.filter(interview =>
-      interview.title.toLowerCase().includes(query) ||
-      interview.id.toLowerCase().includes(query)
+    interviews = interviews.filter(
+      interview =>
+        interview.title.toLowerCase().includes(query) ||
+        interview.id.toLowerCase().includes(query)
     )
   }
 
@@ -426,9 +551,9 @@ const formatDateTime = (timestamp: number) => {
 
 const formatTime = (timestamp: number) => {
   const date = new Date(timestamp)
-  return date.toLocaleTimeString('zh-CN', { 
-    hour: '2-digit', 
-    minute: '2-digit' 
+  return date.toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit'
   })
 }
 
@@ -437,7 +562,7 @@ const formatDuration = (ms: number) => {
   const seconds = Math.floor(ms / 1000)
   const minutes = Math.floor(seconds / 60)
   const hours = Math.floor(minutes / 60)
-  
+
   if (hours > 0) {
     return `${hours}小时${minutes % 60}分钟`
   }
@@ -475,9 +600,11 @@ const deleteInterview = async (interviewId: string) => {
 
     // 这里可以调用 API 删除
     // await api.interview.deleteInterview(interviewId)
-    
+
     // 本地删除
-    const index = interviewStore.interviewHistory.findIndex(i => i.id === interviewId)
+    const index = interviewStore.interviewHistory.findIndex(
+      i => i.id === interviewId
+    )
     if (index !== -1) {
       interviewStore.interviewHistory.splice(index, 1)
       ElMessage.success('删除成功')
@@ -521,9 +648,14 @@ onMounted(() => {
 
 // 加载模拟历史数据
 const loadMockHistory = () => {
-  const positions = ['前端开发工程师', '后端开发工程师', '全栈工程师', '算法工程师']
+  const positions = [
+    '前端开发工程师',
+    '后端开发工程师',
+    '全栈工程师',
+    '算法工程师'
+  ]
   const difficulties = ['简单', '中等', '困难']
-  
+
   for (let i = 0; i < 5; i++) {
     const startTime = Date.now() - i * 3 * 86400000 - Math.random() * 86400000
     const duration = (15 + Math.floor(Math.random() * 45)) * 60 * 1000
@@ -539,19 +671,46 @@ const loadMockHistory = () => {
       duration,
       status: i === 0 ? 'ongoing' : 'completed',
       score: i === 0 ? undefined : +((tech + comm + prob) / 3).toFixed(1),
-      messages: i === 0 ? [
-        { id: 'm1', content: '你好！请先做一个自我介绍。', role: 'assistant', timestamp: startTime },
-        { id: 'm2', content: '你好，我是一名前端工程师。', role: 'user', timestamp: startTime + 60000 },
-      ] : [],
-      analysis: i === 0 ? undefined : {
-        technicalScore: tech,
-        communicationScore: comm,
-        problemSolvingScore: prob,
-        overallScore: +((tech + comm + prob) / 3).toFixed(1),
-        strengths: ['对核心技术概念有扎实的理解', '能够清晰地表达技术方案和思路', '具备良好的问题分析和解决能力'],
-        weaknesses: ['部分高级概念需要进一步深入学习', '系统设计经验有待积累'],
-        suggestions: ['建议多参与大型项目实践', '加强分布式系统和性能优化相关知识', '练习在白板上进行系统设计和算法推导'],
-      }
+      messages:
+        i === 0
+          ? [
+              {
+                id: 'm1',
+                content: '你好！请先做一个自我介绍。',
+                role: 'assistant',
+                timestamp: startTime
+              },
+              {
+                id: 'm2',
+                content: '你好，我是一名前端工程师。',
+                role: 'user',
+                timestamp: startTime + 60000
+              }
+            ]
+          : [],
+      analysis:
+        i === 0
+          ? undefined
+          : {
+              technicalScore: tech,
+              communicationScore: comm,
+              problemSolvingScore: prob,
+              overallScore: +((tech + comm + prob) / 3).toFixed(1),
+              strengths: [
+                '对核心技术概念有扎实的理解',
+                '能够清晰地表达技术方案和思路',
+                '具备良好的问题分析和解决能力'
+              ],
+              weaknesses: [
+                '部分高级概念需要进一步深入学习',
+                '系统设计经验有待积累'
+              ],
+              suggestions: [
+                '建议多参与大型项目实践',
+                '加强分布式系统和性能优化相关知识',
+                '练习在白板上进行系统设计和算法推导'
+              ]
+            }
     })
   }
 }

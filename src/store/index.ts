@@ -11,8 +11,9 @@
  */
 
 // ── Store 实例 ──────────────────────────────────────
-export { useInterviewStore } from './interview'
-export { useUserStore } from './user'
+export { useInterviewStore } from "./interview";
+export { useUserStore } from "./user";
+export { usePreferenceStore } from "./preference";
 
 // ── 类型导出（方便 api.ts 等文件引用） ───────────────
 export type {
@@ -23,13 +24,13 @@ export type {
   RealtimeScores,
   AnswerQuality,
   InterviewConfig,
-} from './interview'
+} from "./interview";
 
-export type { UserInfo } from './user'
+export type { UserInfo } from "./user";
 
 // ── 常量导出 ────────────────────────────────────────
 export {
   POSITION_LABELS,
   DIFFICULTY_LABELS,
   DIFFICULTY_TAG_TYPES,
-} from './interview'
+} from "./interview";

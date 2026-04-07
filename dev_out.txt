@@ -10,3 +10,8 @@ Port 3001 is in use, trying another one...
 [2m17:34:32[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue, /src/views/Login.vue?vue&type=style&index=0&scoped=08aaad4e&lang.scss[22m
 [2m00:10:43[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue[22m
 [2m00:11:11[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue[22m
+[2m00:23:24[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/main.ts[22m
+[2m00:23:31[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/main.ts[22m
+[2m00:25:25[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue[22m
+[2m01:32:53[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles/index.scss[22m
+[2m01:46:41[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles/index.scss[22m

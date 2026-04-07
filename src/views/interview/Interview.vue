@@ -30,7 +30,7 @@
           @click="showConfigDialog = true"
         >
           <el-icon><VideoPlay /></el-icon>
-          开始面试
+          {{ t('startInterview') }}
         </el-button>
         <el-button
           v-else
@@ -39,7 +39,7 @@
           @click="handleEndInterview"
         >
           <el-icon><VideoPause /></el-icon>
-          结束面试
+          {{ t('endInterview') }}
         </el-button>
       </div>
     </div>
@@ -47,7 +47,7 @@
     <!-- ==================== 面试配置对话框 ==================== -->
     <el-dialog
       v-model="showConfigDialog"
-      title="面试配置"
+      :title="t('interviewConfig')"
       width="500px"
       :close-on-click-modal="false"
     >
@@ -95,9 +95,9 @@
       </el-form>
       <template #footer>
         <el-button @click="showConfigDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleStartInterview"
-          >开始面试</el-button
-        >
+        <el-button type="primary" @click="handleStartInterview">{{
+          t('startInterview')
+        }}</el-button>
       </template>
     </el-dialog>
 
@@ -112,7 +112,7 @@
             v-if="!interviewStore.isInterviewing && messages.length === 0"
             class="empty-state"
           >
-            <el-empty description="点击上方「开始面试」按钮，开启 AI 模拟面试">
+            <el-empty :description="t('emptyStartHint')">
               <template #image>
                 <el-icon :size="80" color="#409eff"><ChatDotRound /></el-icon>
               </template>
@@ -145,23 +145,40 @@
             <div class="message-content">
               <div class="message-header">
                 <span class="message-name">
-                  {{ msg.role === 'assistant' ? 'AI 面试官' : '我' }}
+                  {{ msg.role === 'assistant' ? t('aiInterviewer') : t('me') }}
                 </span>
                 <span class="message-time">{{
                   formatTime(msg.timestamp)
                 }}</span>
               </div>
-              <div class="message-body">
+              <div
+                class="message-body"
+                :class="{
+                  thinking: isStreamingMessage(msg.id) && !msg.content
+                }"
+              >
+                <template v-if="msg.isAudio">
+                  <p>{{ msg.content }}</p>
+                  <div class="audio-message">
+                    <el-icon><Microphone /></el-icon>
+                    <span>语音转写</span>
+                  </div>
+                </template>
                 <!-- 文本消息：支持流式输出时逐字显示 -->
-                <p v-if="!msg.isAudio">
-                  {{ msg.content
-                  }}<span v-if="isStreamingMessage(msg.id)">▍</span>
-                </p>
-                <!-- 语音消息标记 -->
-                <div v-else class="audio-message">
-                  <el-icon><Microphone /></el-icon>
-                  <span>语音消息</span>
-                </div>
+                <template v-else>
+                  <p v-if="msg.content">
+                    {{ msg.content
+                    }}<span v-if="isStreamingMessage(msg.id)">▍</span>
+                  </p>
+                  <div
+                    v-else-if="isStreamingMessage(msg.id)"
+                    class="typing-indicator"
+                  >
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                </template>
               </div>
             </div>
           </div>
@@ -174,17 +191,17 @@
             <el-button-group>
               <el-button
                 :type="inputMode === 'text' ? 'primary' : 'default'"
-                @click="inputMode = 'text'"
+                @click="switchToTextMode"
               >
                 <el-icon><ChatLineSquare /></el-icon>
-                文本输入
+                {{ t('textInput') }}
               </el-button>
               <el-button
                 :type="inputMode === 'voice' ? 'primary' : 'default'"
-                @click="inputMode = 'voice'"
+                @click="switchToVoiceMode"
               >
                 <el-icon><Microphone /></el-icon>
-                语音输入
+                {{ t('voiceInput') }}
               </el-button>
             </el-button-group>
           </div>
@@ -195,19 +212,19 @@
               v-model="inputText"
               type="textarea"
               :rows="3"
-              placeholder="请输入你的回答，按 Enter 发送，Shift+Enter 换行"
+              :placeholder="t('inputPlaceholder')"
               resize="none"
               @keydown.enter.exact.prevent="handleSendMessage"
             />
             <div class="input-actions">
-              <span class="input-hint">按 Enter 发送消息</span>
+              <span class="input-hint">{{ t('pressEnterHint') }}</span>
               <el-button
                 type="primary"
                 :disabled="!inputText.trim() || isLoading"
                 @click="handleSendMessage"
               >
                 <el-icon><Promotion /></el-icon>
-                发送
+                {{ t('send') }}
               </el-button>
             </div>
           </div>
@@ -220,18 +237,21 @@
                 :class="{ recording: isRecording }"
                 @mousedown="startRecording"
                 @mouseup="stopRecording"
-                @mouseleave="stopRecording"
+                @touchstart.prevent="startRecording"
+                @touchend.prevent="stopRecording"
               >
                 <el-icon :size="32" :color="isRecording ? '#fff' : '#409eff'">
                   <Microphone />
                 </el-icon>
+                <span v-if="isRecording" class="recording-ring ring-1"></span>
+                <span v-if="isRecording" class="recording-ring ring-2"></span>
               </div>
               <p class="voice-hint">
-                {{ isRecording ? '正在录音… 松开发送' : '按住说话' }}
+                {{ isRecording ? t('recordingHint') : t('holdToTalk') }}
               </p>
             </div>
             <!-- 录音波形可视化 -->
-            <div v-if="isRecording" class="waveform-container">
+            <div class="waveform-container" :class="{ active: isRecording }">
               <canvas ref="waveformCanvas" class="waveform-canvas"></canvas>
             </div>
           </div>
@@ -292,7 +312,7 @@
 
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useInterviewStore, useUserStore } from '@/store'
+import { useInterviewStore, usePreferenceStore, useUserStore } from '@/store'
 import { audioService } from '@/service/audio'
 import { api } from '@/service/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -302,6 +322,42 @@ import * as echarts from 'echarts'
 const router = useRouter()
 const interviewStore = useInterviewStore()
 const userStore = useUserStore()
+const preferenceStore = usePreferenceStore()
+const t = (key: string) => {
+  const en: Record<string, string> = {
+    startInterview: 'Start Interview',
+    endInterview: 'End Interview',
+    interviewConfig: 'Interview Config',
+    emptyStartHint: 'Click "Start Interview" to begin',
+    aiInterviewer: 'AI Interviewer',
+    me: 'Me',
+    textInput: 'Text',
+    voiceInput: 'Voice',
+    inputPlaceholder: 'Type your answer, Enter to send',
+    pressEnterHint: 'Press Enter to send',
+    send: 'Send',
+    recordingHint: 'Recording... release to send',
+    holdToTalk: 'Hold to talk'
+  }
+  if (preferenceStore.language === 'en-US') return en[key] || key
+  return (
+    {
+      startInterview: '开始面试',
+      endInterview: '结束面试',
+      interviewConfig: '面试配置',
+      emptyStartHint: '点击上方「开始面试」按钮，开启 AI 模拟面试',
+      aiInterviewer: 'AI 面试官',
+      me: '我',
+      textInput: '文本输入',
+      voiceInput: '语音输入',
+      inputPlaceholder: '请输入你的回答，按 Enter 发送，Shift+Enter 换行',
+      pressEnterHint: '按 Enter 发送消息',
+      send: '发送',
+      recordingHint: '正在录音… 松开发送',
+      holdToTalk: '按住说话'
+    }[key] || key
+  )
+}
 
 /**
  * 生成模拟面试分析报告
@@ -339,6 +395,11 @@ const isRecording = ref(false) // 是否正在录音
 const streamingMessageId = ref<string | null>(null)
 const messageListRef = ref<HTMLElement>() // 消息列表 DOM 引用（用于自动滚动）
 const waveformCanvas = ref<HTMLCanvasElement>() // 录音波形 Canvas
+const recordingPromise = ref<Promise<Blob> | null>(null)
+const isStoppingRecording = ref(false)
+const suppressRecordingSubmit = ref(false)
+let recordingSessionId = 0
+const currentRecordingSession = ref(0)
 const radarChartRef = ref<HTMLElement>() // 雷达图容器
 const pieChartRef = ref<HTMLElement>() // 饼图容器
 
@@ -375,6 +436,7 @@ let pieChart: echarts.ECharts | null = null
 // ==================== 定时器句柄 ====================
 let countdownTimer: ReturnType<typeof setInterval> | null = null
 let animationFrameId: number | null = null
+let messageIdSeed = 0
 
 // ==================== 计算属性 ====================
 
@@ -414,6 +476,24 @@ const formatTime = (timestamp: number) => {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+const createMessageId = (prefix: string = 'msg') => {
+  messageIdSeed += 1
+  return `${prefix}_${Date.now()}_${messageIdSeed}`
+}
+
+const switchToTextMode = async () => {
+  if (inputMode.value === 'text') return
+  if (isRecording.value) {
+    suppressRecordingSubmit.value = true
+    await stopRecording()
+  }
+  inputMode.value = 'text'
+}
+
+const switchToVoiceMode = () => {
+  inputMode.value = 'voice'
 }
 
 /** 将秒数格式化为 mm:ss 或 h:mm:ss */
@@ -570,7 +650,7 @@ const updateRealtimeScores = () => {
  */
 const getAIResponse = async (userContent?: string) => {
   const assistantMsg = {
-    id: `msg_${Date.now()}`,
+    id: createMessageId('msg'),
     content: '',
     role: 'assistant' as const,
     timestamp: Date.now()
@@ -600,7 +680,7 @@ const getAIResponse = async (userContent?: string) => {
     .filter(m => m.role === 'user' || m.role === 'assistant')
     .map(m => ({
       role: m.role as 'user' | 'assistant',
-      content: m.isAudio ? '[语音消息]' : m.content
+      content: m.content
     }))
 
   const messagesToSend = userContent
@@ -613,45 +693,90 @@ const getAIResponse = async (userContent?: string) => {
         }
       ]
 
-  await api.gpt.streamChatSSE(
-    messagesToSend,
-    {
-      onChunk: chunk => {
-        const msgs = interviewStore.currentInterview?.messages
-        if (!msgs) return
-        const last = msgs[msgs.length - 1]
-        if (!last || last.id !== assistantMsg.id) return
-        last.content += chunk
-        scrollToBottom()
-      },
-      onDone: fullText => {
-        // 兜底逻辑：确保流结束时，消息列表中的内容是最完整的
-        const msgs = interviewStore.currentInterview?.messages
-        if (
-          msgs &&
-          msgs.length > 0 &&
-          msgs[msgs.length - 1].id === assistantMsg.id
-        ) {
-          msgs[msgs.length - 1].content =
-            fullText || msgs[msgs.length - 1].content
-        }
-        streamingMessageId.value = null
-        updateRealtimeScores()
-      },
-      onError: err => {
-        streamingMessageId.value = null
-        if (err.message.includes('重新登录') || err.message.includes('401')) {
-          userStore.logout()
-          interviewStore.endInterview()
-          router.push('/login')
-        }
-        ElMessage.error(err.message || 'AI 回复失败')
-      }
-    },
-    undefined
-  )
+  let finalError: any = null
+  let hasContent = false
 
-  // 流式输出完成后更新实时评分
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let streamError: any = null
+    let finalText = ''
+    let gotChunk = false
+
+    if (attempt > 0) {
+      assistantMsg.content = ''
+      scrollToBottom()
+    }
+
+    await api.gpt.streamChatSSE(
+      messagesToSend,
+      {
+        onChunk: chunk => {
+          gotChunk = true
+          const msgs = interviewStore.currentInterview?.messages
+          if (!msgs) return
+          const target = msgs.find(m => m.id === assistantMsg.id)
+          if (!target) return
+          target.content += chunk
+          scrollToBottom()
+        },
+        onDone: fullText => {
+          finalText = fullText
+          const msgs = interviewStore.currentInterview?.messages
+          if (!msgs) return
+          const target = msgs.find(m => m.id === assistantMsg.id)
+          if (!target) return
+          target.content = fullText || target.content
+        },
+        onError: err => {
+          streamError = err
+        }
+      },
+      undefined
+    )
+
+    if (streamError) {
+      finalError = streamError
+      if (
+        streamError.message.includes('重新登录') ||
+        streamError.message.includes('401')
+      ) {
+        streamingMessageId.value = null
+        userStore.logout()
+        interviewStore.endInterview()
+        router.push('/login')
+        ElMessage.error(streamError.message || '登录状态已失效')
+        return
+      }
+      if (attempt === 0) {
+        await new Promise(r => setTimeout(r, 300))
+        continue
+      }
+      break
+    }
+
+    hasContent = gotChunk || !!finalText.trim() || !!assistantMsg.content.trim()
+    if (hasContent) break
+    if (attempt === 0) {
+      await new Promise(r => setTimeout(r, 300))
+    }
+  }
+
+  streamingMessageId.value = null
+
+  if (!hasContent) {
+    const msgs = interviewStore.currentInterview?.messages
+    if (msgs) {
+      const target = msgs.find(m => m.id === assistantMsg.id)
+      if (target && !target.content.trim()) {
+        target.content = '我这边暂时没有生成有效回复，请再试一次。'
+      }
+    }
+    if (finalError) {
+      ElMessage.error(finalError.message || 'AI 回复失败')
+    }
+    return
+  }
+
+  updateRealtimeScores()
 }
 
 const isStreamingMessage = (msgId: string) => {
@@ -685,7 +810,7 @@ const handleStartInterview = async () => {
 
   // 立即推入一条静态欢迎语，提升用户体验
   interviewStore.addMessage({
-    id: `msg_welcome_${Date.now()}`,
+    id: createMessageId('msg_welcome'),
     content: `你好！我是你的 AI 面试官。我已经收到了你的面试配置：${title}。准备好的话，请做一个简短的自我介绍吧。`,
     role: 'assistant',
     timestamp: Date.now()
@@ -730,7 +855,7 @@ const handleSendMessage = async () => {
 
   // 添加用户消息
   interviewStore.addMessage({
-    id: `msg_${Date.now()}`,
+    id: createMessageId('msg'),
     content,
     role: 'user',
     timestamp: Date.now()
@@ -758,17 +883,26 @@ const handleSendMessage = async () => {
  * 通过 audioService（MediaRecorder）获取麦克风权限并录制音频
  */
 const startRecording = async () => {
+  if (isLoading.value || isRecording.value || isStoppingRecording.value) return
   if (!audioService.isRecordingSupported()) {
     ElMessage.error('您的浏览器不支持语音录制')
     return
   }
   try {
+    recordingSessionId += 1
+    currentRecordingSession.value = recordingSessionId
+    streamingMessageId.value = null
+    suppressRecordingSubmit.value = false
     isRecording.value = true
-    await audioService.startRecording()
+    recordingPromise.value = null
+    recordingPromise.value = audioService.startRecording()
     startWaveformAnimation()
+    window.addEventListener('mouseup', stopRecording)
+    window.addEventListener('touchend', stopRecording)
   } catch (error) {
     ElMessage.error('无法访问麦克风，请检查权限设置')
     isRecording.value = false
+    recordingPromise.value = null
   }
 }
 
@@ -779,36 +913,59 @@ const startRecording = async () => {
  * 3. 调用 AI 流式回复
  */
 const stopRecording = async () => {
-  if (!isRecording.value) return
+  if (!isRecording.value || isStoppingRecording.value) return
   try {
+    isStoppingRecording.value = true
+    const sessionId = currentRecordingSession.value
     isRecording.value = false
+    window.removeEventListener('mouseup', stopRecording)
+    window.removeEventListener('touchend', stopRecording)
     if (animationFrameId) {
       cancelAnimationFrame(animationFrameId)
       animationFrameId = null
     }
 
     audioService.stopRecording()
-    // 等待 MediaRecorder onstop 回调产生 Blob
-    await new Promise(r => setTimeout(r, 300))
+    const audioBlob = recordingPromise.value
+      ? await recordingPromise.value
+      : null
+    recordingPromise.value = null
+    if (!audioBlob) {
+      ElMessage.error('录音数据获取失败，请重试')
+      return
+    }
+    if (sessionId !== currentRecordingSession.value) return
+    if (suppressRecordingSubmit.value) return
 
-    // 添加语音消息
+    const sttRes = await api.gpt.speechToText(audioBlob)
+    const transcript = (sttRes.data?.text || '').trim()
+    if (!transcript) {
+      ElMessage.warning('未识别到有效语音内容，请重试')
+      return
+    }
+
     isLoading.value = true
     interviewStore.addMessage({
-      id: `msg_${Date.now()}`,
-      content: '（语音消息）我通过语音回答了这个问题。',
+      id: createMessageId('msg'),
+      content: transcript,
       role: 'user',
       timestamp: Date.now(),
       isAudio: true
     })
     scrollToBottom()
 
-    // AI 流式回复
-    await getAIResponse('语音回答')
+    await getAIResponse(transcript)
     scrollToBottom()
   } catch (error) {
+    ElMessage.error('语音识别失败，请稍后重试')
     console.error('录音失败:', error)
   } finally {
     isLoading.value = false
+    recordingPromise.value = null
+    isStoppingRecording.value = false
+    suppressRecordingSubmit.value = false
+    window.removeEventListener('mouseup', stopRecording)
+    window.removeEventListener('touchend', stopRecording)
   }
 }
 
@@ -1078,10 +1235,16 @@ onUnmounted(() => {
       .message-body {
         padding: 12px 16px;
         line-height: 1.6;
+        min-height: 22px;
 
         p {
           margin: 0;
           white-space: pre-wrap;
+        }
+
+        &.thinking {
+          padding: 14px 16px;
+          min-width: 72px;
         }
 
         .audio-message {
@@ -1097,11 +1260,13 @@ onUnmounted(() => {
   .typing-indicator {
     display: flex;
     gap: 4px;
+    align-items: center;
+    min-height: 16px;
 
     span {
       width: 8px;
       height: 8px;
-      background: #909399;
+      background: #b0b7c3;
       border-radius: 50%;
       animation: typing 1.4s infinite;
 
@@ -1156,38 +1321,82 @@ onUnmounted(() => {
       align-items: center;
 
       .voice-indicator {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        background: #ecf5ff;
+        width: 220px;
+        height: 56px;
+        border-radius: 28px;
+        background: #f5f7ff;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         transition: all 0.3s;
-        border: 3px solid #409eff;
+        border: 1px solid #dbe4ff;
+        gap: 10px;
+        position: relative;
+        box-shadow: 0 4px 14px rgba(64, 158, 255, 0.12);
 
         &.recording {
-          background: #f56c6c;
-          border-color: #f56c6c;
-          animation: pulse 1s infinite;
+          background: linear-gradient(135deg, #5b8cff 0%, #6f63ff 100%);
+          border-color: transparent;
+          box-shadow: 0 10px 24px rgba(91, 140, 255, 0.36);
+
+          :deep(.el-icon) {
+            transform: scale(1.08);
+            transition: transform 0.2s;
+          }
         }
 
         &:hover {
           transform: scale(1.05);
         }
+
+        &::after {
+          content: '按住说话';
+          font-size: 15px;
+          font-weight: 600;
+          color: #4a62a8;
+        }
+
+        &.recording::after {
+          content: '松开发送';
+          color: #fff;
+        }
+
+        .recording-ring {
+          position: absolute;
+          border-radius: 28px;
+          border: 1px solid rgba(255, 255, 255, 0.8);
+          left: -2px;
+          right: -2px;
+          top: -2px;
+          bottom: -2px;
+          pointer-events: none;
+          animation: ringPulse 1.5s infinite ease-out;
+        }
+
+        .ring-2 {
+          animation-delay: 0.45s;
+        }
       }
 
       .voice-hint {
         margin-top: 12px;
-        font-size: 14px;
-        color: #606266;
+        font-size: 13px;
+        color: #8a94a6;
+        min-height: 20px;
       }
     }
 
     .waveform-container {
       width: 100%;
       margin-top: 20px;
+      height: 60px;
+      opacity: 0;
+      transition: opacity 0.2s;
+
+      &.active {
+        opacity: 1;
+      }
 
       .waveform-canvas {
         width: 100%;
@@ -1277,6 +1486,17 @@ onUnmounted(() => {
   }
   50% {
     box-shadow: 0 0 0 20px rgba(245, 108, 108, 0);
+  }
+}
+
+@keyframes ringPulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.1);
+    opacity: 0;
   }
 }
 </style>

@@ -78,6 +78,14 @@ const allowedModels = new Set(
     .map((s) => s.trim())
     .filter(Boolean),
 );
+const sttModels = (
+  process.env.SILICONFLOW_STT_MODELS ||
+  process.env.OPENAI_STT_MODELS ||
+  "FunAudioLLM/SenseVoiceSmall,whisper-1"
+)
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 /** 是否配置了有效的 API Key */
 export const isOpenAIConfigured =
@@ -127,9 +135,13 @@ function normalizeErrorMessage(error: any): string {
 
 function canRetryByModel(error: any): boolean {
   const status = error?.status ?? error?.response?.status;
-  if (status === 400 || status === 404) return true;
+  if (status === 400 || status === 403 || status === 404) return true;
   const msg = String(normalizeErrorMessage(error)).toLowerCase();
-  return msg.includes("model") || msg.includes("not found");
+  return (
+    msg.includes("model") ||
+    msg.includes("not found") ||
+    msg.includes("permission")
+  );
 }
 
 function modelCandidates(requested?: string): string[] {
@@ -285,13 +297,30 @@ export async function speechToText(
     type: mimeType,
   });
 
-  const transcription = await client.audio.transcriptions.create({
-    model: "whisper-1",
-    file,
-    language: "zh",
-  });
+  let lastError: any = null;
+  for (const model of sttModels) {
+    try {
+      const transcription = await client.audio.transcriptions.create({
+        model,
+        file,
+        language: "zh",
+      });
+      return { text: transcription.text };
+    } catch (error: any) {
+      lastError = error;
+      try {
+        const transcription = await client.audio.transcriptions.create({
+          model,
+          file,
+        });
+        return { text: transcription.text };
+      } catch (errorNoLang: any) {
+        lastError = errorNoLang;
+      }
+    }
+  }
 
-  return { text: transcription.text };
+  throw new Error(`语音转写模型不可用: ${normalizeErrorMessage(lastError)}`);
 }
 
 /**

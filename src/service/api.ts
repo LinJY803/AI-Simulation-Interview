@@ -40,6 +40,7 @@
 
 import axios from "axios";
 import type { InterviewAnalysis, InterviewMessage, UserInfo } from "@/store";
+import { AudioService } from "@/service/audio";
 
 // ==================== 1. 类型定义 ====================
 
@@ -635,6 +636,26 @@ export const api = {
       }
       return request.delete(`/interview/${interviewId}`);
     },
+
+    exportInterviewReport: async (
+      interviewId: string,
+      format: "txt" | "html" | "json" = "txt",
+    ): Promise<Blob> => {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${API_BASE_URL}/interview/${interviewId}/export?format=${format}`,
+        {
+          method: "GET",
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        },
+      );
+      if (!response.ok) {
+        throw new Error(`导出失败: ${response.status} ${response.statusText}`);
+      }
+      return await response.blob();
+    },
   },
 
   // ─────────────────────────────────────────────
@@ -982,27 +1003,8 @@ export const api = {
         );
       }
 
-      // 真实模式：调用 Whisper API
-      const formData = new FormData();
-      formData.append("file", audioBlob, "recording.webm");
-      formData.append("model", "whisper-1");
-      formData.append("language", "zh"); // 指定中文，也可不指定让 API 自动检测
-
-      const response = await axios.post(
-        `${OPENAI_BASE_URL}/audio/transcriptions`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${OPENAI_API_KEY}`,
-            "Content-Type": "multipart/form-data",
-          },
-        },
-      );
-
-      return mockApiResponse<SpeechToTextResult>({
-        text: response.data.text,
-        language: response.data.language,
-      });
+      const audioData = await AudioService.audioToBase64(audioBlob);
+      return request.post("/gpt/speech-to-text", { audioData });
     },
 
     /**
