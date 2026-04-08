@@ -1043,4 +1043,32 @@ onUnmounted(() => {
     }
   }
 }
+
+html[data-theme='dark'] .report-container {
+  background: #121417;
+}
+
+html[data-theme='dark'] .report-container .analysis-section .analysis-list li,
+html[data-theme='dark'] .report-container .detailed-analysis .analysis-examples,
+html[data-theme='dark'] .report-container .dialogue-section .dialogue-message {
+  background: #212833;
+  color: #dbe2ee;
+}
+
+html[data-theme='dark']
+  .report-container
+  .detailed-analysis
+  .analysis-item
+  .analysis-body
+  .analysis-examples
+  .examples-label,
+html[data-theme='dark'] .report-container .summary-section h4,
+html[data-theme='dark'] .report-container .detailed-analysis h4 {
+  color: #f3f6fb;
+}
+
+html[data-theme='dark'] .report-container .detailed-analysis .analysis-item,
+html[data-theme='dark'] .report-container .dialogue-section .dialogue-item {
+  border-bottom-color: #2f3a49;
+}
 </style>

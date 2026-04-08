@@ -55,6 +55,8 @@ const avatarUpload = multer({
   },
 });
 
+const avatarSingle = avatarUpload.single("avatar");
+
 // ==================== POST /api/upload/resume ====================
 router.post(
   "/resume",
@@ -99,10 +101,16 @@ router.post("/audio", upload.single("audio"), (req: Request, res: Response) => {
   });
 });
 
-router.post(
-  "/avatar",
-  avatarUpload.single("avatar"),
-  (req: Request, res: Response) => {
+router.post("/avatar", (req: Request, res: Response) => {
+  avatarSingle(req as any, res as any, (err: any) => {
+    if (err) {
+      const message =
+        err?.code === "LIMIT_FILE_SIZE"
+          ? "头像文件不能超过 2MB"
+          : err?.message || "头像上传失败";
+      res.status(400).json({ code: 400, success: false, message });
+      return;
+    }
     const file = (req as any).file;
     if (!file) {
       res
@@ -123,7 +131,7 @@ router.post(
       message: "上传成功",
       data: { url: fileUrl, filename: file.originalname },
     });
-  },
-);
+  });
+});
 
 export default router;

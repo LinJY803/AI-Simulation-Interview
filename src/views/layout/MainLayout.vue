@@ -15,12 +15,7 @@
             <span>{{ preferenceStore.t('menuInterview') }}</span>
           </el-menu-item>
           <el-menu-item index="/history">
-            <el-icon><Clock /></el-icon>
             <span>{{ preferenceStore.t('menuHistory') }}</span>
-          </el-menu-item>
-          <el-menu-item index="/profile">
-            <el-icon><User /></el-icon>
-            <span>{{ preferenceStore.t('menuProfile') }}</span>
           </el-menu-item>
         </el-menu>
       </div>
@@ -38,10 +33,10 @@
                 <el-icon><User /></el-icon>
                 {{ preferenceStore.t('userProfile') }}
               </el-dropdown-item>
-              <el-dropdown-item command="settings">
+              <!-- <el-dropdown-item command="settings">
                 <el-icon><Setting /></el-icon>
                 {{ preferenceStore.t('settings') }}
-              </el-dropdown-item>
+              </el-dropdown-item> -->
               <el-dropdown-item divided command="logout">
                 <el-icon><SwitchButton /></el-icon>
                 {{ preferenceStore.t('logout') }}
@@ -108,16 +103,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { usePreferenceStore, useUserStore } from '@/store'
+import { api } from '@/service/api'
 import { ElMessage } from 'element-plus'
 import {
   ChatLineRound,
   Clock,
   User,
   ArrowDown,
-  Setting,
   SwitchButton
 } from '@element-plus/icons-vue'
 
@@ -175,6 +170,27 @@ const showHelp = () => {
 const showPrivacy = () => {
   ElMessage.info('隐私政策开发中...')
 }
+
+const refreshUserProfile = async () => {
+  if (!userStore.isLoggedIn) return
+  try {
+    const result = await api.user.getProfile()
+    const p = result.data
+    if (!p) return
+    userStore.setUserInfo({
+      id: p.id || userStore.userInfo?.id || 0,
+      username: p.username || userStore.userInfo?.username || '',
+      email: p.email || userStore.userInfo?.email || '',
+      avatar:
+        p.avatar || userStore.userInfo?.avatar || 'https://picsum.photos/200',
+      role: (p.role as 'admin' | 'user') || userStore.userInfo?.role || 'user'
+    })
+  } catch {}
+}
+
+onMounted(() => {
+  refreshUserProfile()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -182,15 +198,16 @@ const showPrivacy = () => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #f5f7fa;
+  background-color: #f3f4f6;
 
   .layout-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    background: #1f2937;
+    border-bottom: 1px solid #2f3947;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
 
     .header-left {
       display: flex;
@@ -199,10 +216,10 @@ const showPrivacy = () => {
 
       .logo {
         color: white;
-        font-size: 24px;
-        font-weight: bold;
+        font-size: 22px;
+        font-weight: 600;
         margin: 0;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        letter-spacing: 0.5px;
       }
 
       :deep(.header-menu) {
@@ -220,9 +237,11 @@ const showPrivacy = () => {
           }
 
           &.is-active {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border-bottom-color: white;
+            background: rgba(96, 165, 250, 0.16);
+            color: #dbeafe;
+            border-bottom-color: #93c5fd;
+            font-weight: 700;
+            text-shadow: none;
           }
 
           .el-icon {
@@ -261,7 +280,7 @@ const showPrivacy = () => {
 
   .layout-content {
     flex: 1;
-    padding: 24px;
+    padding: 20px;
     overflow: auto;
   }
 
@@ -299,6 +318,58 @@ const showPrivacy = () => {
           margin: 0 8px;
         }
       }
+    }
+  }
+}
+
+@media (max-width: 1024px) {
+  .main-layout {
+    .layout-header {
+      padding: 0 14px;
+
+      .header-left {
+        gap: 16px;
+
+        .logo {
+          font-size: 18px;
+        }
+      }
+    }
+
+    .layout-content {
+      padding: 14px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .main-layout {
+    .layout-header {
+      height: auto;
+      min-height: 56px;
+      padding: 8px 10px;
+
+      .header-left {
+        gap: 10px;
+        min-width: 0;
+
+        :deep(.header-menu) {
+          .el-menu-item {
+            font-size: 14px;
+            padding: 0 10px;
+          }
+        }
+      }
+
+      .header-right {
+        .username {
+          display: none;
+        }
+      }
+    }
+
+    .layout-footer {
+      padding: 10px;
     }
   }
 }

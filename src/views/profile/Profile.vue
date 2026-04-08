@@ -14,6 +14,7 @@
               <div class="avatar-actions">
                 <el-upload
                   :action="avatarUploadAction"
+                  name="avatar"
                   :headers="uploadHeaders"
                   :show-file-list="false"
                   :on-success="handleAvatarSuccess"
@@ -246,29 +247,33 @@
       <el-col :span="8">
         <el-card class="security-card">
           <template #header>
-            <span>账户安全</span>
+            <span>{{ t('accountSecurity') }}</span>
           </template>
 
           <div class="security-actions">
-            <el-button type="primary" @click="changePassword">
+            <el-button
+              class="security-action-btn"
+              type="primary"
+              @click="changePassword"
+            >
               <el-icon><Lock /></el-icon>
-              修改密码
+              {{ t('changePassword') }}
             </el-button>
 
-            <el-button @click="manageDevices">
+            <el-button class="security-action-btn" @click="manageDevices">
               <el-icon><Monitor /></el-icon>
-              设备管理
+              {{ t('deviceManagement') }}
             </el-button>
 
-            <el-button @click="viewActivityLog">
+            <el-button class="security-action-btn" @click="viewActivityLog">
               <el-icon><Document /></el-icon>
-              活动日志
+              {{ t('activityLog') }}
             </el-button>
 
             <el-divider />
 
             <div class="security-info">
-              <h4>安全状态</h4>
+              <h4>{{ t('securityStatus') }}</h4>
               <el-alert
                 :type="getSecurityLevel().type"
                 :title="getSecurityLevel().title"
@@ -281,17 +286,26 @@
             <el-divider />
 
             <div class="danger-zone">
-              <h4>危险操作</h4>
-              <p class="danger-hint">这些操作可能会影响您的账户安全</p>
+              <h4>{{ t('dangerZone') }}</h4>
+              <p class="danger-hint">{{ t('dangerHint') }}</p>
 
-              <el-button type="danger" plain @click="logoutAllDevices">
+              <el-button
+                class="security-action-btn"
+                type="danger"
+                plain
+                @click="logoutAllDevices"
+              >
                 <el-icon><SwitchButton /></el-icon>
-                退出所有设备
+                {{ t('logoutAllDevices') }}
               </el-button>
 
-              <el-button type="danger" @click="deleteAccount">
+              <el-button
+                class="security-action-btn"
+                type="danger"
+                @click="deleteAccount"
+              >
                 <el-icon><Delete /></el-icon>
-                删除账户
+                {{ t('deleteAccount') }}
               </el-button>
             </div>
           </div>
@@ -299,34 +313,34 @@
 
         <el-card ref="preferenceCardRef" class="preference-card mt-20">
           <template #header>
-            <span>偏好设置</span>
+            <span>{{ t('preferences') }}</span>
           </template>
 
           <div class="preference-settings">
             <div class="preference-item">
-              <span>主题模式</span>
+              <span>{{ t('themeMode') }}</span>
               <el-switch
                 v-model="theme.darkMode"
-                active-text="暗黑"
-                inactive-text="明亮"
+                :active-text="t('dark')"
+                :inactive-text="t('light')"
                 @change="toggleTheme"
               />
             </div>
 
             <div class="preference-item">
-              <span>语言设置</span>
+              <span>{{ t('language') }}</span>
               <el-select
                 v-model="theme.language"
                 size="small"
                 @change="changeLanguage"
               >
-                <el-option label="中文" value="zh-CN" />
+                <el-option :label="t('chinese')" value="zh-CN" />
                 <el-option label="English" value="en-US" />
               </el-select>
             </div>
 
             <div class="preference-item">
-              <span>动画效果</span>
+              <span>{{ t('animations') }}</span>
               <el-switch
                 v-model="theme.animations"
                 @change="onPreferenceChange"
@@ -334,12 +348,12 @@
             </div>
 
             <div class="preference-item">
-              <span>声音提示</span>
+              <span>{{ t('sounds') }}</span>
               <el-switch v-model="theme.sounds" @change="onPreferenceChange" />
             </div>
 
             <div class="preference-item">
-              <span>自动保存</span>
+              <span>{{ t('autoSave') }}</span>
               <el-switch
                 v-model="theme.autoSave"
                 @change="onPreferenceChange"
@@ -353,7 +367,7 @@
     <!-- 修改密码对话框 -->
     <el-dialog
       v-model="passwordDialogVisible"
-      title="修改密码"
+      :title="t('changePassword')"
       width="400px"
       :close-on-click-modal="false"
     >
@@ -363,7 +377,7 @@
         :rules="passwordRules"
         label-width="80px"
       >
-        <el-form-item label="当前密码" prop="currentPassword">
+        <el-form-item :label="t('currentPassword')" prop="currentPassword">
           <el-input
             v-model="passwordForm.currentPassword"
             type="password"
@@ -371,21 +385,21 @@
           />
         </el-form-item>
 
-        <el-form-item label="新密码" prop="newPassword">
+        <el-form-item :label="t('newPassword')" prop="newPassword">
           <el-input
             v-model="passwordForm.newPassword"
             type="password"
             show-password
           />
           <div class="password-strength">
-            密码强度：
+            {{ t('passwordStrength') }}：
             <span :style="{ color: passwordStrength.color }">
               {{ passwordStrength.message }}
             </span>
           </div>
         </el-form-item>
 
-        <el-form-item label="确认密码" prop="confirmPassword">
+        <el-form-item :label="t('confirmPassword')" prop="confirmPassword">
           <el-input
             v-model="passwordForm.confirmPassword"
             type="password"
@@ -395,13 +409,15 @@
       </el-form>
 
       <template #footer>
-        <el-button @click="passwordDialogVisible = false">取消</el-button>
+        <el-button @click="passwordDialogVisible = false">{{
+          t('cancel')
+        }}</el-button>
         <el-button
           type="primary"
           :loading="changingPassword"
           @click="submitPasswordChange"
         >
-          确认修改
+          {{ t('confirmChange') }}
         </el-button>
       </template>
     </el-dialog>
@@ -409,15 +425,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, nextTick } from 'vue'
+import { ref, computed, reactive, onMounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { usePreferenceStore, useUserStore } from '@/store'
+import { useInterviewStore, usePreferenceStore, useUserStore } from '@/store'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { api } from '@/service/api'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const interviewStore = useInterviewStore()
 const preferenceStore = usePreferenceStore()
 const t = (key: string) => {
   const en: Record<string, string> = {
@@ -437,7 +454,31 @@ const t = (key: string) => {
     communication: 'Communication',
     problemSolving: 'Problem Solving',
     profileSettings: 'Profile Settings',
-    saveSettings: 'Save'
+    saveSettings: 'Save',
+    accountSecurity: 'Account Security',
+    changePassword: 'Change Password',
+    deviceManagement: 'Device Management',
+    activityLog: 'Activity Logs',
+    securityStatus: 'Security Status',
+    dangerZone: 'Danger Zone',
+    dangerHint: 'These operations may affect account security',
+    logoutAllDevices: 'Logout All Devices',
+    deleteAccount: 'Delete Account',
+    preferences: 'Preferences',
+    themeMode: 'Theme',
+    dark: 'Dark',
+    light: 'Light',
+    language: 'Language',
+    chinese: 'Chinese',
+    animations: 'Animations',
+    sounds: 'Sounds',
+    autoSave: 'Auto Save',
+    currentPassword: 'Current',
+    newPassword: 'New',
+    confirmPassword: 'Confirm',
+    passwordStrength: 'Password Strength',
+    cancel: 'Cancel',
+    confirmChange: 'Confirm'
   }
   if (preferenceStore.language === 'en-US') return en[key] || key
   return (
@@ -458,7 +499,31 @@ const t = (key: string) => {
       communication: '沟通能力',
       problemSolving: '问题解决',
       profileSettings: '个人信息设置',
-      saveSettings: '保存设置'
+      saveSettings: '保存设置',
+      accountSecurity: '账户安全',
+      changePassword: '修改密码',
+      deviceManagement: '设备管理',
+      activityLog: '活动日志',
+      securityStatus: '安全状态',
+      dangerZone: '危险操作',
+      dangerHint: '这些操作可能会影响您的账户安全',
+      logoutAllDevices: '退出所有设备',
+      deleteAccount: '删除账户',
+      preferences: '偏好设置',
+      themeMode: '主题模式',
+      dark: '暗黑',
+      light: '明亮',
+      language: '语言设置',
+      chinese: '中文',
+      animations: '动画效果',
+      sounds: '声音提示',
+      autoSave: '自动保存',
+      currentPassword: '当前密码',
+      newPassword: '新密码',
+      confirmPassword: '确认密码',
+      passwordStrength: '密码强度',
+      cancel: '取消',
+      confirmChange: '确认修改'
     }[key] || key
   )
 }
@@ -926,14 +991,52 @@ onMounted(() => {
   }
 })
 
-// 加载用户统计
-const loadUserStats = async () => {
-  try {
-    const result = await api.user.getStats()
-    Object.assign(userStats, result.data)
-  } catch (error) {
-    console.error('加载统计失败:', error)
+watch(
+  () => interviewStore.interviewHistory.length,
+  () => {
+    loadUserStats()
   }
+)
+
+// 加载用户统计（与面试历史保持一致）
+const loadUserStats = async () => {
+  const list = interviewStore.interviewHistory || []
+  const completed = list.filter(i => i.status === 'completed')
+  const totalInterviews = list.length
+  const completedInterviews = completed.length
+  const scoreList = completed
+    .map(i => Number(i.score || i.analysis?.overallScore || 0))
+    .filter(v => !Number.isNaN(v) && v > 0)
+  const averageScore =
+    scoreList.length > 0
+      ? scoreList.reduce((sum, v) => sum + v, 0) / scoreList.length
+      : 0
+  const bestScore = scoreList.length > 0 ? Math.max(...scoreList) : 0
+  const worstScore = scoreList.length > 0 ? Math.min(...scoreList) : 0
+  const totalDuration = completed.reduce((sum, i) => sum + (i.duration || 0), 0)
+  const dailyAverage =
+    completedInterviews > 0
+      ? Math.round(totalDuration / completedInterviews / (1000 * 60))
+      : 0
+  const improvementRate =
+    scoreList.length >= 2
+      ? Math.round(
+          ((scoreList[scoreList.length - 1] - scoreList[0]) /
+            Math.max(scoreList[0], 0.1)) *
+            100
+        )
+      : 0
+
+  Object.assign(userStats, {
+    totalInterviews,
+    completedInterviews,
+    averageScore: Number(averageScore.toFixed(1)),
+    bestScore: Number(bestScore.toFixed(1)),
+    worstScore: Number(worstScore.toFixed(1)),
+    totalDuration,
+    dailyAverage,
+    improvementRate
+  })
 }
 
 const loadProfile = async () => {
@@ -1106,9 +1209,23 @@ const loadProfile = async () => {
 
   .security-card {
     .security-actions {
-      .el-button {
+      .security-action-btn {
         width: 100%;
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        text-align: left;
+        gap: 8px;
+        padding-left: 14px;
+        padding-right: 14px;
         margin-bottom: 12px;
+
+        :deep(.el-icon) {
+          width: 16px;
+          min-width: 16px;
+          margin-right: 0;
+        }
 
         &:last-child {
           margin-bottom: 0;
@@ -1138,9 +1255,23 @@ const loadProfile = async () => {
           color: var(--color-text-secondary);
         }
 
-        .el-button {
+        .security-action-btn {
           width: 100%;
+          min-height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          text-align: left;
+          gap: 8px;
+          padding-left: 14px;
+          padding-right: 14px;
           margin-bottom: 12px;
+
+          :deep(.el-icon) {
+            width: 16px;
+            min-width: 16px;
+            margin-right: 0;
+          }
 
           &:last-child {
             margin-bottom: 0;
@@ -1185,5 +1316,46 @@ const loadProfile = async () => {
   font-size: 12px;
   margin-top: 4px;
   color: var(--color-text-secondary);
+}
+
+@media (max-width: 1024px) {
+  .profile-container {
+    padding: 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .profile-container {
+    :deep(.el-col) {
+      width: 100%;
+      max-width: 100%;
+      flex: 0 0 100%;
+    }
+
+    .user-card {
+      margin-bottom: 12px;
+    }
+
+    .stats-card {
+      .stat-item {
+        padding: 10px;
+        gap: 12px;
+      }
+    }
+
+    .preference-card {
+      .preference-settings {
+        .preference-item {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 10px;
+
+          .el-select {
+            width: 100%;
+          }
+        }
+      }
+    }
+  }
 }
 </style>

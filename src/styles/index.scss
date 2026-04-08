@@ -40,11 +40,11 @@ body {
 
 // 自定义 Element Plus 样式
 :root {
-  --el-color-primary: #667eea;
-  --el-color-primary-light-3: #764ba2;
-  --el-color-primary-light-5: #8a63d2;
-  --el-color-primary-light-7: #a481e3;
-  --el-color-primary-light-9: #d9caf9;
+  --el-color-primary: #2563eb;
+  --el-color-primary-light-3: #3b82f6;
+  --el-color-primary-light-5: #60a5fa;
+  --el-color-primary-light-7: #93c5fd;
+  --el-color-primary-light-9: #dbeafe;
 
   --el-color-success: #67c23a;
   --el-color-warning: #e6a23c;
@@ -510,10 +510,10 @@ body {
 }
 
 :root {
-  --app-bg: #f5f7fa;
-  --app-text: #333;
+  --app-bg: #f3f4f6;
+  --app-text: #111827;
   --app-card-bg: #fff;
-  --app-border: #ebeef5;
+  --app-border: #e5e7eb;
 }
 
 html[data-theme="dark"] {
@@ -556,6 +556,21 @@ html[data-theme="dark"] .el-menu-item {
 
 html[data-theme="dark"] .el-menu-item.is-active {
   color: #7ea2ff;
+}
+
+html[data-theme="dark"] .el-popper.is-light,
+html[data-theme="dark"] .el-dropdown__popper,
+html[data-theme="dark"] .el-dropdown-menu {
+  background: #1b1f24 !important;
+  border-color: #2f3947 !important;
+}
+
+html[data-theme="dark"] .el-dropdown-menu__item {
+  color: #dbe2ee !important;
+}
+
+html[data-theme="dark"] .el-dropdown-menu__item:hover {
+  background: #2a3340 !important;
 }
 
 html[data-theme="dark"] .main-layout,

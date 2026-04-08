@@ -3,7 +3,7 @@
     <!-- ==================== 顶部栏：面试状态 + 控制按钮 ==================== -->
     <div class="interview-header">
       <div class="header-info">
-        <h2>AI 模拟面试</h2>
+        <h2>{{ t('pageTitle') }}</h2>
         <div class="interview-meta" v-if="interviewStore.isInterviewing">
           <el-tag type="success" size="small">
             <el-icon><Timer /></el-icon>
@@ -12,13 +12,15 @@
           <el-tag :type="difficultyType" size="small">{{
             difficultyLabel
           }}</el-tag>
-          <el-tag type="info" size="small">{{ messages.length }} 条消息</el-tag>
+          <el-tag type="info" size="small"
+            >{{ messages.length }} {{ t('messagesUnit') }}</el-tag
+          >
           <el-tag
             v-if="elapsedSeconds >= interviewConfig.duration * 60"
             type="danger"
             size="small"
           >
-            时间到！
+            {{ t('timeUp') }}
           </el-tag>
         </div>
       </div>
@@ -52,10 +54,10 @@
       :close-on-click-modal="false"
     >
       <el-form :model="interviewConfig" label-width="100px">
-        <el-form-item label="应聘岗位">
+        <el-form-item :label="t('position')">
           <el-select
             v-model="interviewConfig.position"
-            placeholder="请选择面试岗位"
+            :placeholder="t('selectPosition')"
             style="width: 100%"
           >
             <el-option label="前端开发工程师" value="frontend" />
@@ -66,35 +68,39 @@
             <el-option label="测试工程师" value="qa" />
           </el-select>
         </el-form-item>
-        <el-form-item label="难度级别">
+        <el-form-item :label="t('difficulty')">
           <el-radio-group v-model="interviewConfig.difficulty">
-            <el-radio value="easy">简单</el-radio>
-            <el-radio value="medium">中等</el-radio>
-            <el-radio value="hard">困难</el-radio>
+            <el-radio value="easy">{{ t('easy') }}</el-radio>
+            <el-radio value="medium">{{ t('medium') }}</el-radio>
+            <el-radio value="hard">{{ t('hard') }}</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="面试时长">
+        <el-form-item :label="t('duration')">
           <el-select
             v-model="interviewConfig.duration"
-            placeholder="请选择面试时长"
+            :placeholder="t('selectDuration')"
             style="width: 100%"
           >
-            <el-option label="15 分钟" :value="15" />
-            <el-option label="30 分钟" :value="30" />
-            <el-option label="45 分钟" :value="45" />
-            <el-option label="60 分钟" :value="60" />
+            <el-option :label="`15 ${t('minute')}`" :value="15" />
+            <el-option :label="`30 ${t('minute')}`" :value="30" />
+            <el-option :label="`45 ${t('minute')}`" :value="45" />
+            <el-option :label="`60 ${t('minute')}`" :value="60" />
           </el-select>
         </el-form-item>
-        <el-form-item label="面试类型">
+        <el-form-item :label="t('interviewType')">
           <el-radio-group v-model="interviewConfig.type">
-            <el-radio value="technical">技术面试</el-radio>
-            <el-radio value="behavioral">行为面试</el-radio>
-            <el-radio value="mixed">综合面试</el-radio>
+            <el-radio value="technical">{{ t('technicalInterview') }}</el-radio>
+            <el-radio value="behavioral">{{
+              t('behavioralInterview')
+            }}</el-radio>
+            <el-radio value="mixed">{{ t('mixedInterview') }}</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showConfigDialog = false">取消</el-button>
+        <el-button @click="showConfigDialog = false">{{
+          t('cancel')
+        }}</el-button>
         <el-button type="primary" @click="handleStartInterview">{{
           t('startInterview')
         }}</el-button>
@@ -125,7 +131,7 @@
             class="interview-ended-banner"
           >
             <el-icon><CircleCheck /></el-icon>
-            <span>面试已结束，正在生成分析报告…</span>
+            <span>{{ t('interviewEndedGenerating') }}</span>
           </div>
 
           <!-- 逐条消息渲染 -->
@@ -161,7 +167,7 @@
                   <p>{{ msg.content }}</p>
                   <div class="audio-message">
                     <el-icon><Microphone /></el-icon>
-                    <span>语音转写</span>
+                    <span>{{ t('voiceTranscript') }}</span>
                   </div>
                 </template>
                 <!-- 文本消息：支持流式输出时逐字显示 -->
@@ -246,47 +252,47 @@
                 <span v-if="isRecording" class="recording-ring ring-1"></span>
                 <span v-if="isRecording" class="recording-ring ring-2"></span>
               </div>
-              <p class="voice-hint">
+              <!-- <p class="voice-hint">
                 {{ isRecording ? t('recordingHint') : t('holdToTalk') }}
-              </p>
+              </p> -->
             </div>
             <!-- 录音波形可视化 -->
-            <div class="waveform-container" :class="{ active: isRecording }">
+            <!-- <div class="waveform-container" :class="{ active: isRecording }">
               <canvas ref="waveformCanvas" class="waveform-canvas"></canvas>
-            </div>
+            </div> -->
           </div>
         </div>
       </div>
 
       <!-- ==================== 右侧：实时评分面板（ECharts） ==================== -->
       <div class="score-panel" v-if="interviewStore.isInterviewing">
-        <h3 class="panel-title">实时评估</h3>
+        <h3 class="panel-title">{{ t('realtimeEval') }}</h3>
 
         <!-- 雷达图：技术 / 沟通 / 解决问题 三维评分 -->
-        <div ref="radarChartRef" class="chart-wrapper"></div>
+        <div ref="radarChartRef" class="chart-wrapper radar"></div>
 
         <!-- 分数总览 -->
         <div class="score-overview">
           <div class="score-card">
-            <span class="label">综合评分</span>
+            <span class="label">{{ t('overallScore') }}</span>
             <span class="value">{{ overallScore }}</span>
           </div>
           <div class="score-card">
-            <span class="label">技术能力</span>
+            <span class="label">{{ t('techAbility') }}</span>
             <span class="value">{{ realtimeScores.technicalScore }}</span>
           </div>
           <div class="score-card">
-            <span class="label">沟通表达</span>
+            <span class="label">{{ t('communication') }}</span>
             <span class="value">{{ realtimeScores.communicationScore }}</span>
           </div>
           <div class="score-card">
-            <span class="label">解决问题</span>
+            <span class="label">{{ t('problemSolving') }}</span>
             <span class="value">{{ realtimeScores.problemSolvingScore }}</span>
           </div>
         </div>
 
         <!-- 饼图：回答质量分布 -->
-        <div ref="pieChartRef" class="chart-wrapper pie"></div>
+        <!-- <div ref="pieChartRef" class="chart-wrapper pie"></div> -->
       </div>
     </div>
   </div>
@@ -325,36 +331,108 @@ const userStore = useUserStore()
 const preferenceStore = usePreferenceStore()
 const t = (key: string) => {
   const en: Record<string, string> = {
+    pageTitle: 'AI Interview',
     startInterview: 'Start Interview',
     endInterview: 'End Interview',
     interviewConfig: 'Interview Config',
     emptyStartHint: 'Click "Start Interview" to begin',
     aiInterviewer: 'AI Interviewer',
     me: 'Me',
+    messagesUnit: 'messages',
+    timeUp: 'Time is up!',
+    position: 'Position',
+    selectPosition: 'Select position',
+    difficulty: 'Difficulty',
+    easy: 'Easy',
+    medium: 'Medium',
+    hard: 'Hard',
+    duration: 'Duration',
+    selectDuration: 'Select duration',
+    minute: 'min',
+    interviewType: 'Type',
+    technicalInterview: 'Technical',
+    behavioralInterview: 'Behavioral',
+    mixedInterview: 'Mixed',
+    cancel: 'Cancel',
     textInput: 'Text',
     voiceInput: 'Voice',
     inputPlaceholder: 'Type your answer, Enter to send',
     pressEnterHint: 'Press Enter to send',
     send: 'Send',
     recordingHint: 'Recording... release to send',
-    holdToTalk: 'Hold to talk'
+    holdToTalk: 'Hold to talk',
+    interviewEndedGenerating: 'Interview ended, generating report...',
+    voiceTranscript: 'Voice transcript',
+    realtimeEval: 'Realtime Evaluation',
+    overallScore: 'Overall',
+    techAbility: 'Technical',
+    communication: 'Communication',
+    problemSolving: 'Problem Solving',
+    emptyAiReply: 'No valid reply generated. Please retry.',
+    aiReplyFailed: 'AI reply failed',
+    interviewStarted: 'Interview started. Good luck!',
+    getAiFailed: 'Failed to get AI reply',
+    browserNoRecording: 'Your browser does not support recording',
+    micNoPermission: 'Cannot access microphone',
+    recordingDataFailed: 'Failed to get recording data',
+    sttEmpty: 'No valid speech detected',
+    sttFailed: 'Speech recognition failed',
+    endConfirmText: 'End current interview and generate report?',
+    confirmEnd: 'End',
+    continueInterview: 'Continue'
   }
   if (preferenceStore.language === 'en-US') return en[key] || key
   return (
     {
+      pageTitle: 'AI 模拟面试',
       startInterview: '开始面试',
       endInterview: '结束面试',
       interviewConfig: '面试配置',
       emptyStartHint: '点击上方「开始面试」按钮，开启 AI 模拟面试',
       aiInterviewer: 'AI 面试官',
       me: '我',
+      messagesUnit: '条消息',
+      timeUp: '时间到！',
+      position: '应聘岗位',
+      selectPosition: '请选择面试岗位',
+      difficulty: '难度级别',
+      easy: '简单',
+      medium: '中等',
+      hard: '困难',
+      duration: '面试时长',
+      selectDuration: '请选择面试时长',
+      minute: '分钟',
+      interviewType: '面试类型',
+      technicalInterview: '技术面试',
+      behavioralInterview: '行为面试',
+      mixedInterview: '综合面试',
+      cancel: '取消',
       textInput: '文本输入',
       voiceInput: '语音输入',
       inputPlaceholder: '请输入你的回答，按 Enter 发送，Shift+Enter 换行',
       pressEnterHint: '按 Enter 发送消息',
       send: '发送',
       recordingHint: '正在录音… 松开发送',
-      holdToTalk: '按住说话'
+      holdToTalk: '按住说话',
+      interviewEndedGenerating: '面试已结束，正在生成分析报告…',
+      voiceTranscript: '语音转写',
+      realtimeEval: '实时评估',
+      overallScore: '综合评分',
+      techAbility: '技术能力',
+      communication: '沟通表达',
+      problemSolving: '解决问题',
+      emptyAiReply: '我这边暂时没有生成有效回复，请再试一次。',
+      aiReplyFailed: 'AI 回复失败',
+      interviewStarted: '面试已开始，祝你好运！',
+      getAiFailed: '获取 AI 回复失败',
+      browserNoRecording: '您的浏览器不支持语音录制',
+      micNoPermission: '无法访问麦克风，请检查权限设置',
+      recordingDataFailed: '录音数据获取失败，请重试',
+      sttEmpty: '未识别到有效语音内容，请重试',
+      sttFailed: '语音识别失败，请稍后重试',
+      endConfirmText: '确定要结束当前面试吗？结束后将生成面试分析报告。',
+      confirmEnd: '确定结束',
+      continueInterview: '继续面试'
     }[key] || key
   )
 }
@@ -437,6 +515,10 @@ let pieChart: echarts.ECharts | null = null
 let countdownTimer: ReturnType<typeof setInterval> | null = null
 let animationFrameId: number | null = null
 let messageIdSeed = 0
+const handleChartResize = () => {
+  radarChart?.resize()
+  pieChart?.resize()
+}
 
 // ==================== 计算属性 ====================
 
@@ -455,9 +537,9 @@ const overallScore = computed(() => {
 /** 难度中文标签 */
 const difficultyLabel = computed(() => {
   const labels: Record<string, string> = {
-    easy: '简单',
-    medium: '中等',
-    hard: '困难'
+    easy: t('easy'),
+    medium: t('medium'),
+    hard: t('hard')
   }
   return labels[interviewConfig.value.difficulty]
 })
@@ -514,11 +596,9 @@ const formatDuration = (seconds: number) => {
  */
 const initRadarChart = () => {
   if (!radarChartRef.value) return
+  radarChart?.dispose()
   radarChart = echarts.init(radarChartRef.value)
   updateRadarChart()
-
-  // 响应窗口缩放
-  window.addEventListener('resize', () => radarChart?.resize())
 }
 
 /** 更新雷达图数据 */
@@ -529,9 +609,9 @@ const updateRadarChart = () => {
     tooltip: {},
     radar: {
       indicator: [
-        { name: '技术能力', max: 5 },
-        { name: '沟通表达', max: 5 },
-        { name: '解决问题', max: 5 }
+        { name: t('techAbility'), max: 5 },
+        { name: t('communication'), max: 5 },
+        { name: t('problemSolving'), max: 5 }
       ],
       shape: 'circle',
       splitNumber: 5,
@@ -550,7 +630,7 @@ const updateRadarChart = () => {
               s.communicationScore,
               s.problemSolvingScore
             ],
-            name: '面试评分',
+            name: t('realtimeEval'),
             areaStyle: { color: 'rgba(64,158,255,0.25)' },
             lineStyle: { color: '#409eff', width: 2 },
             itemStyle: { color: '#409eff' }
@@ -567,10 +647,9 @@ const updateRadarChart = () => {
  */
 const initPieChart = () => {
   if (!pieChartRef.value) return
+  pieChart?.dispose()
   pieChart = echarts.init(pieChartRef.value)
   updatePieChart()
-
-  window.addEventListener('resize', () => pieChart?.resize())
 }
 
 /** 更新饼图数据 */
@@ -578,8 +657,25 @@ const updatePieChart = () => {
   if (!pieChart) return
   const q = answerQuality.value
   pieChart.setOption({
-    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-    legend: { bottom: 0, textStyle: { fontSize: 12 } },
+    tooltip: {
+      trigger: 'item',
+      formatter: '{b}: {c} ({d}%)',
+      confine: true,
+      appendToBody: true,
+      extraCssText: 'z-index: 9999;',
+      position: (
+        point: any,
+        _params: any,
+        _dom: any,
+        _rect: any,
+        size: any
+      ) => {
+        const x = Math.min(point[0] + 12, size.viewSize[0] - 160)
+        const y = Math.max(point[1] - 28, 8)
+        return [x, y]
+      }
+    },
+    legend: { bottom: 0, textStyle: { fontSize: 12 }, selectedMode: false },
     series: [
       {
         type: 'pie',
@@ -590,10 +686,26 @@ const updatePieChart = () => {
         label: { show: false },
         emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
         data: [
-          { value: q.excellent, name: '优秀', itemStyle: { color: '#67c23a' } },
-          { value: q.good, name: '良好', itemStyle: { color: '#409eff' } },
-          { value: q.average, name: '一般', itemStyle: { color: '#e6a23c' } },
-          { value: q.poor, name: '较差', itemStyle: { color: '#f56c6c' } }
+          {
+            value: q.excellent,
+            name: preferenceStore.language === 'en-US' ? 'Excellent' : '优秀',
+            itemStyle: { color: '#67c23a' }
+          },
+          {
+            value: q.good,
+            name: preferenceStore.language === 'en-US' ? 'Good' : '良好',
+            itemStyle: { color: '#409eff' }
+          },
+          {
+            value: q.average,
+            name: preferenceStore.language === 'en-US' ? 'Average' : '一般',
+            itemStyle: { color: '#e6a23c' }
+          },
+          {
+            value: q.poor,
+            name: preferenceStore.language === 'en-US' ? 'Poor' : '较差',
+            itemStyle: { color: '#f56c6c' }
+          }
         ]
       }
     ]
@@ -767,11 +879,11 @@ const getAIResponse = async (userContent?: string) => {
     if (msgs) {
       const target = msgs.find(m => m.id === assistantMsg.id)
       if (target && !target.content.trim()) {
-        target.content = '我这边暂时没有生成有效回复，请再试一次。'
+        target.content = t('emptyAiReply')
       }
     }
     if (finalError) {
-      ElMessage.error(finalError.message || 'AI 回复失败')
+      ElMessage.error(finalError.message || t('aiReplyFailed'))
     }
     return
   }
@@ -841,7 +953,7 @@ const handleStartInterview = async () => {
 
   scrollToBottom()
 
-  ElMessage.success('面试已开始，祝你好运！')
+  ElMessage.success(t('interviewStarted'))
 }
 
 /**
@@ -869,7 +981,7 @@ const handleSendMessage = async () => {
     await getAIResponse(content)
     scrollToBottom()
   } catch (error) {
-    ElMessage.error('获取 AI 回复失败')
+    ElMessage.error(t('getAiFailed'))
     console.error(error)
   } finally {
     isLoading.value = false
@@ -885,7 +997,7 @@ const handleSendMessage = async () => {
 const startRecording = async () => {
   if (isLoading.value || isRecording.value || isStoppingRecording.value) return
   if (!audioService.isRecordingSupported()) {
-    ElMessage.error('您的浏览器不支持语音录制')
+    ElMessage.error(t('browserNoRecording'))
     return
   }
   try {
@@ -900,7 +1012,7 @@ const startRecording = async () => {
     window.addEventListener('mouseup', stopRecording)
     window.addEventListener('touchend', stopRecording)
   } catch (error) {
-    ElMessage.error('无法访问麦克风，请检查权限设置')
+    ElMessage.error(t('micNoPermission'))
     isRecording.value = false
     recordingPromise.value = null
   }
@@ -931,7 +1043,7 @@ const stopRecording = async () => {
       : null
     recordingPromise.value = null
     if (!audioBlob) {
-      ElMessage.error('录音数据获取失败，请重试')
+      ElMessage.error(t('recordingDataFailed'))
       return
     }
     if (sessionId !== currentRecordingSession.value) return
@@ -940,7 +1052,7 @@ const stopRecording = async () => {
     const sttRes = await api.gpt.speechToText(audioBlob)
     const transcript = (sttRes.data?.text || '').trim()
     if (!transcript) {
-      ElMessage.warning('未识别到有效语音内容，请重试')
+      ElMessage.warning(t('sttEmpty'))
       return
     }
 
@@ -957,7 +1069,7 @@ const stopRecording = async () => {
     await getAIResponse(transcript)
     scrollToBottom()
   } catch (error) {
-    ElMessage.error('语音识别失败，请稍后重试')
+    ElMessage.error(t('sttFailed'))
     console.error('录音失败:', error)
   } finally {
     isLoading.value = false
@@ -987,8 +1099,14 @@ const startWaveformAnimation = () => {
     if (!data) return
 
     ctx.clearRect(0, 0, canvas.width, canvas.height)
-    ctx.lineWidth = 2
-    ctx.strokeStyle = '#409eff'
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0)
+    gradient.addColorStop(0, '#67c23a')
+    gradient.addColorStop(0.5, '#409eff')
+    gradient.addColorStop(1, '#a855f7')
+    ctx.lineWidth = 2.5
+    ctx.strokeStyle = gradient
+    ctx.shadowColor = 'rgba(64, 158, 255, 0.45)'
+    ctx.shadowBlur = 6
     ctx.beginPath()
 
     const sliceWidth = canvas.width / data.length
@@ -1000,6 +1118,14 @@ const startWaveformAnimation = () => {
       else ctx.lineTo(x, y)
       x += sliceWidth
     }
+    ctx.lineTo(canvas.width, canvas.height / 2)
+    ctx.stroke()
+    ctx.shadowBlur = 0
+
+    ctx.beginPath()
+    ctx.strokeStyle = 'rgba(64, 158, 255, 0.22)'
+    ctx.lineWidth = 1
+    ctx.moveTo(0, canvas.height / 2)
     ctx.lineTo(canvas.width, canvas.height / 2)
     ctx.stroke()
 
@@ -1017,15 +1143,11 @@ const startWaveformAnimation = () => {
  */
 const handleEndInterview = async () => {
   try {
-    await ElMessageBox.confirm(
-      '确定要结束当前面试吗？结束后将生成面试分析报告。',
-      '结束面试',
-      {
-        confirmButtonText: '确定结束',
-        cancelButtonText: '继续面试',
-        type: 'warning'
-      }
-    )
+    await ElMessageBox.confirm(t('endConfirmText'), t('endInterview'), {
+      confirmButtonText: t('confirmEnd'),
+      cancelButtonText: t('continueInterview'),
+      type: 'warning'
+    })
   } catch {
     // 用户取消
     return
@@ -1050,7 +1172,7 @@ const handleEndInterview = async () => {
   pieChart?.dispose()
   pieChart = null
 
-  ElMessage.success('面试已结束，正在生成分析报告…')
+  ElMessage.success(t('interviewEndedGenerating'))
 
   // 跳转到报告页
   setTimeout(() => {
@@ -1076,12 +1198,40 @@ watch(messages, () => scrollToBottom(), { deep: true })
 
 onMounted(() => {
   scrollToBottom()
+  if (interviewStore.isInterviewing) {
+    nextTick(() => {
+      initRadarChart()
+      initPieChart()
+      handleChartResize()
+    })
+  }
+  window.addEventListener('resize', handleChartResize)
 })
+
+watch(
+  () => interviewStore.isInterviewing,
+  val => {
+    if (val) {
+      nextTick(() => {
+        initRadarChart()
+        initPieChart()
+        updateRadarChart()
+        updatePieChart()
+      })
+      return
+    }
+    radarChart?.dispose()
+    radarChart = null
+    pieChart?.dispose()
+    pieChart = null
+  }
+)
 
 onUnmounted(() => {
   // 清理所有定时器和动画
   if (countdownTimer) clearInterval(countdownTimer)
   if (animationFrameId) cancelAnimationFrame(animationFrameId)
+  window.removeEventListener('resize', handleChartResize)
   radarChart?.dispose()
   pieChart?.dispose()
 })
@@ -1093,7 +1243,7 @@ onUnmounted(() => {
   height: calc(100vh - 120px);
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   overflow: hidden;
@@ -1106,7 +1256,7 @@ onUnmounted(() => {
   align-items: center;
   padding: 20px 24px;
   border-bottom: 1px solid #ebeef5;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #1f2937;
   color: #fff;
   flex-shrink: 0;
 
@@ -1324,21 +1474,21 @@ onUnmounted(() => {
         width: 220px;
         height: 56px;
         border-radius: 28px;
-        background: #f5f7ff;
+        background: #eef2f7;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         transition: all 0.3s;
-        border: 1px solid #dbe4ff;
+        border: 1px solid #d4dde8;
         gap: 10px;
         position: relative;
-        box-shadow: 0 4px 14px rgba(64, 158, 255, 0.12);
+        box-shadow: 0 2px 10px rgba(31, 41, 55, 0.08);
 
         &.recording {
-          background: linear-gradient(135deg, #5b8cff 0%, #6f63ff 100%);
+          background: #334155;
           border-color: transparent;
-          box-shadow: 0 10px 24px rgba(91, 140, 255, 0.36);
+          box-shadow: 0 6px 16px rgba(51, 65, 85, 0.35);
 
           :deep(.el-icon) {
             transform: scale(1.08);
@@ -1354,7 +1504,7 @@ onUnmounted(() => {
           content: '按住说话';
           font-size: 15px;
           font-weight: 600;
-          color: #4a62a8;
+          color: #334155;
         }
 
         &.recording::after {
@@ -1390,18 +1540,25 @@ onUnmounted(() => {
     .waveform-container {
       width: 100%;
       margin-top: 20px;
-      height: 60px;
-      opacity: 0;
-      transition: opacity 0.2s;
+      height: 72px;
+      opacity: 1;
+      transition: all 0.2s;
+      border-radius: 10px;
+      background: linear-gradient(180deg, #f6f8fc 0%, #eef3ff 100%);
+      border: 1px solid #e1e8f8;
+      display: flex;
+      align-items: center;
+      padding: 6px 8px;
 
       &.active {
-        opacity: 1;
+        box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.16);
+        border-color: #9dc0ff;
       }
 
       .waveform-canvas {
         width: 100%;
         height: 60px;
-        background: #f8f9fb;
+        background: transparent;
         border-radius: 8px;
       }
     }
@@ -1429,11 +1586,15 @@ onUnmounted(() => {
 
   .chart-wrapper {
     width: 100%;
-    height: 220px;
+    height: 175px;
+  }
+
+  .chart-wrapper.radar {
+    height: 160px;
   }
 
   .chart-wrapper.pie {
-    height: 200px;
+    height: 180px;
   }
 
   .score-overview {
@@ -1459,10 +1620,123 @@ onUnmounted(() => {
       .value {
         font-size: 22px;
         font-weight: 700;
-        color: #409eff;
+        color: #2563eb;
       }
     }
   }
+}
+
+@media (max-width: 1200px) {
+  .interview-container {
+    height: auto;
+    min-height: calc(100vh - 120px);
+  }
+
+  .interview-body {
+    flex-direction: column;
+  }
+
+  .score-panel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid #ebeef5;
+  }
+}
+
+@media (max-width: 768px) {
+  .interview-header {
+    padding: 14px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .message-list {
+    padding: 12px;
+
+    .message-item {
+      gap: 10px;
+
+      .message-content {
+        max-width: 84%;
+      }
+    }
+  }
+
+  .input-area {
+    padding: 12px;
+
+    .voice-input {
+      padding: 8px 0;
+
+      .voice-status {
+        width: 100%;
+
+        .voice-indicator {
+          width: 100%;
+          max-width: 280px;
+        }
+      }
+    }
+  }
+}
+
+html[data-theme='dark'] .interview-container {
+  background: #121417;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme='dark'] .interview-header {
+  border-bottom-color: #2c323a;
+}
+
+html[data-theme='dark'] .message-list {
+  background: #161a1f;
+}
+
+html[data-theme='dark'] .message-list .message-item.assistant .message-body {
+  background: #252b33;
+  color: #e7ecf3;
+}
+
+html[data-theme='dark'] .message-list .message-item.user .message-body {
+  background: #3f67f0;
+}
+
+html[data-theme='dark'] .input-area {
+  background: #171b20;
+  border-top-color: #2c323a;
+}
+
+html[data-theme='dark'] .input-area .voice-input .voice-indicator {
+  background: #202733;
+  border-color: #364153;
+}
+
+html[data-theme='dark'] .input-area .waveform-container .waveform-canvas {
+  background: #1f252d;
+}
+
+html[data-theme='dark'] .input-area .waveform-container {
+  background: linear-gradient(180deg, #1e2530 0%, #1a2029 100%);
+  border-color: #334055;
+}
+
+html[data-theme='dark'] .input-area .waveform-container.active {
+  box-shadow: 0 0 0 3px rgba(126, 162, 255, 0.2);
+}
+
+html[data-theme='dark'] .score-panel {
+  background: #171b20;
+  border-left-color: #2c323a;
+}
+
+html[data-theme='dark'] .score-panel .panel-title {
+  color: #e7ecf3;
+}
+
+html[data-theme='dark'] .score-panel .score-overview .score-card {
+  background: #222932;
 }
 
 /* ==================== 动画 ==================== */

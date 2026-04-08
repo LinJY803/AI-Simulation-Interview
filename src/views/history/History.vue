@@ -100,22 +100,6 @@
                 {{ t('ongoing') }}
               </el-button>
             </el-button-group>
-            <el-dropdown @command="handleExport">
-              <el-button>
-                {{ t('exportData')
-                }}<el-icon class="el-icon--right"><ArrowDown /></el-icon>
-              </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="csv">{{
-                    t('csvFormat')
-                  }}</el-dropdown-item>
-                  <el-dropdown-item command="excel">{{
-                    t('excelFormat')
-                  }}</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
           </div>
         </div>
       </template>
@@ -988,6 +972,94 @@ const loadMockHistory = () => {
               }
             }
           }
+        }
+      }
+    }
+  }
+}
+
+html[data-theme='dark'] .history-container {
+  background: #121417;
+}
+
+html[data-theme='dark'] .history-container .history-header h2 {
+  color: #e7ecf3;
+}
+
+html[data-theme='dark'] .history-container .stat-card,
+html[data-theme='dark'] .history-container .history-table-card,
+html[data-theme='dark'] .history-container .details-section {
+  background: #1b1f24;
+  border-color: #2c323a;
+}
+
+html[data-theme='dark'] .history-container .stat-info .stat-value,
+html[data-theme='dark'] .history-container .section-header span,
+html[data-theme='dark'] .history-container .info-item span,
+html[data-theme='dark'] .history-container .message-text {
+  color: #e7ecf3;
+}
+
+html[data-theme='dark'] .history-container :deep(.el-table),
+html[data-theme='dark'] .history-container :deep(.el-table__inner-wrapper),
+html[data-theme='dark'] .history-container :deep(.el-table tr),
+html[data-theme='dark'] .history-container :deep(.el-table th.el-table__cell),
+html[data-theme='dark'] .history-container :deep(.el-table td.el-table__cell) {
+  background: #1b1f24 !important;
+  color: #e7ecf3 !important;
+  border-color: #2c323a !important;
+}
+
+html[data-theme='dark'] .history-container :deep(.el-table__row:hover > td) {
+  background: #232933 !important;
+}
+
+html[data-theme='dark'] .history-container :deep(.el-drawer),
+html[data-theme='dark'] .history-container :deep(.el-drawer__body),
+html[data-theme='dark'] .history-container .drawer-content {
+  background: #161a1f !important;
+  color: #e7ecf3;
+}
+
+@media (max-width: 1024px) {
+  .history-container {
+    padding: 14px;
+
+    .stats-row {
+      :deep(.el-col) {
+        margin-bottom: 12px;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .history-container {
+    .history-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+
+    .history-table-card {
+      .table-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+
+        .table-actions {
+          justify-content: space-between;
+          flex-wrap: wrap;
+        }
+      }
+    }
+
+    .drawer-content {
+      .interview-details {
+        padding: 14px;
+
+        .details-section .info-grid {
+          grid-template-columns: 1fr;
         }
       }
     }
