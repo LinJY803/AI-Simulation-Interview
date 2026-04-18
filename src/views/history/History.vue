@@ -24,7 +24,7 @@
                 <el-icon color="#409eff" :size="24"><Clock /></el-icon>
               </div>
               <div class="stat-info">
-                <p class="stat-label">{{ t('totalInterviews') }}</p>
+                <p class="stat-label">{{ t('totalSessions') }}</p>
                 <p class="stat-value">{{ stats.totalCount }}</p>
               </div>
             </div>
@@ -74,7 +74,7 @@
       </el-row>
     </div>
 
-    <!-- 面试历史表格 -->
+    <!-- 会话历史表格 -->
     <el-card class="history-table-card">
       <template #header>
         <div class="table-header">
@@ -105,14 +105,14 @@
       </template>
 
       <el-table
-        :data="filteredInterviews"
+        :data="filteredConversations"
         style="width: 100%"
         v-loading="loading"
         @row-click="handleRowClick"
       >
-        <el-table-column :label="t('interviewTitle')" min-width="200">
+        <el-table-column :label="t('chatTitle')" min-width="200">
           <template #default="{ row }">
-            <div class="interview-title">
+            <div class="session-title">
               <el-tag
                 :type="
                   row.status === 'completed'
@@ -125,7 +125,9 @@
               >
                 {{ getStatusLabel(row.status) }}
               </el-tag>
-              <span class="title-text">{{ row.title }}</span>
+              <span class="title-text">{{
+                localizeConversationTitle(row.title)
+              }}</span>
             </div>
           </template>
         </el-table-column>
@@ -173,7 +175,7 @@
               <el-button
                 type="info"
                 size="small"
-                @click.stop="deleteInterview(row.id)"
+                @click.stop="deleteConversation(row.id)"
               >
                 <el-icon><Delete /></el-icon>
               </el-button>
@@ -188,7 +190,7 @@
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
           :page-sizes="[10, 20, 50, 100]"
-          :total="totalInterviews"
+          :total="totalConversations"
           layout="total, sizes, prev, pager, next, jumper"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
@@ -196,23 +198,23 @@
       </div>
     </el-card>
 
-    <!-- 面试详情侧边栏 -->
+    <!-- 会话详情侧边栏 -->
     <el-drawer
       v-model="drawerVisible"
-      title="面试详情"
+      title="会话详情"
       size="600px"
       :with-header="false"
       direction="rtl"
     >
-      <div class="drawer-content" v-if="selectedInterview">
+      <div class="drawer-content" v-if="selectedConversation">
         <div class="drawer-header">
-          <h3>{{ selectedInterview.title }}</h3>
+          <h3>{{ localizeConversationTitle(selectedConversation.title) }}</h3>
           <el-button text @click="drawerVisible = false">
             <el-icon><Close /></el-icon>
           </el-button>
         </div>
 
-        <div class="interview-details">
+        <div class="session-details">
           <!-- 基本信息 -->
           <el-card class="details-section">
             <template #header>
@@ -226,34 +228,34 @@
                 <label>状态</label>
                 <el-tag
                   :type="
-                    selectedInterview.status === 'completed'
+                    selectedConversation.status === 'completed'
                       ? 'success'
                       : 'primary'
                   "
                   size="small"
                 >
-                  {{ getStatusLabel(selectedInterview.status) }}
+                  {{ getStatusLabel(selectedConversation.status) }}
                 </el-tag>
               </div>
               <div class="info-item">
                 <label>开始时间</label>
-                <span>{{ formatDateTime(selectedInterview.startTime) }}</span>
+                <span>{{ formatDateTime(selectedConversation.startTime) }}</span>
               </div>
               <div class="info-item">
                 <label>结束时间</label>
                 <span>{{
-                  selectedInterview.endTime
-                    ? formatDateTime(selectedInterview.endTime)
+                  selectedConversation.endTime
+                    ? formatDateTime(selectedConversation.endTime)
                     : '--'
                 }}</span>
               </div>
               <div class="info-item">
                 <label>总时长</label>
-                <span>{{ formatDuration(selectedInterview.duration) }}</span>
+                <span>{{ formatDuration(selectedConversation.duration) }}</span>
               </div>
               <div class="info-item">
                 <label>消息数量</label>
-                <span>{{ selectedInterview.messages?.length || 0 }}</span>
+                <span>{{ selectedConversation.messages?.length || 0 }}</span>
               </div>
             </div>
           </el-card>
@@ -268,7 +270,7 @@
             </template>
             <div class="message-history">
               <div
-                v-for="message in selectedInterview.messages"
+                v-for="message in selectedConversation.messages"
                 :key="message.id"
                 class="history-message"
                 :class="message.role"
@@ -281,7 +283,7 @@
                 </div>
                 <div class="message-content">
                   <div class="message-name">
-                    {{ message.role === 'assistant' ? 'AI 面试官' : '我' }}
+                    {{ message.role === 'assistant' ? '智能体' : '我' }}
                     <span class="message-time">{{
                       formatTime(message.timestamp)
                     }}</span>
@@ -295,7 +297,7 @@
           </el-card>
 
           <!-- 分析结果 -->
-          <el-card v-if="selectedInterview.analysis" class="details-section">
+          <el-card v-if="selectedConversation.analysis" class="details-section">
             <template #header>
               <div class="section-header">
                 <el-icon><TrendCharts /></el-icon>
@@ -307,15 +309,15 @@
                 <div class="score-header">
                   <h4>总体评分</h4>
                   <div class="score-value">
-                    {{ selectedInterview.analysis.overallScore.toFixed(1) }}/5.0
+                    {{ selectedConversation.analysis.overallScore.toFixed(1) }}/5.0
                   </div>
                 </div>
                 <el-progress
                   :percentage="
-                    (selectedInterview.analysis.overallScore / 5) * 100
+                    (selectedConversation.analysis.overallScore / 5) * 100
                   "
                   :color="
-                    getScoreColor(selectedInterview.analysis.overallScore)
+                    getScoreColor(selectedConversation.analysis.overallScore)
                   "
                 />
               </div>
@@ -329,10 +331,10 @@
                     <label>技术能力</label>
                     <el-progress
                       :percentage="
-                        (selectedInterview.analysis.technicalScore / 5) * 100
+                        (selectedConversation.analysis.technicalScore / 5) * 100
                       "
                       :color="
-                        getScoreColor(selectedInterview.analysis.technicalScore)
+                        getScoreColor(selectedConversation.analysis.technicalScore)
                       "
                     />
                   </div>
@@ -340,12 +342,12 @@
                     <label>沟通能力</label>
                     <el-progress
                       :percentage="
-                        (selectedInterview.analysis.communicationScore / 5) *
+                        (selectedConversation.analysis.communicationScore / 5) *
                         100
                       "
                       :color="
                         getScoreColor(
-                          selectedInterview.analysis.communicationScore
+                          selectedConversation.analysis.communicationScore
                         )
                       "
                     />
@@ -354,12 +356,12 @@
                     <label>问题解决</label>
                     <el-progress
                       :percentage="
-                        (selectedInterview.analysis.problemSolvingScore / 5) *
+                        (selectedConversation.analysis.problemSolvingScore / 5) *
                         100
                       "
                       :color="
                         getScoreColor(
-                          selectedInterview.analysis.problemSolvingScore
+                          selectedConversation.analysis.problemSolvingScore
                         )
                       "
                     />
@@ -375,7 +377,7 @@
                     <h5>优势</h5>
                     <ul>
                       <li
-                        v-for="strength in selectedInterview.analysis.strengths"
+                        v-for="strength in selectedConversation.analysis.strengths"
                         :key="strength"
                       >
                         {{ strength }}
@@ -386,7 +388,7 @@
                     <h5>改进建议</h5>
                     <ul>
                       <li
-                        v-for="suggestion in selectedInterview.analysis
+                        v-for="suggestion in selectedConversation.analysis
                           .suggestions"
                         :key="suggestion"
                       >
@@ -405,30 +407,31 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useInterviewStore, usePreferenceStore } from '@/store'
+import { useConversationStore, usePreferenceStore } from '@/store'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { ChatSession } from '@/store'
 
 const router = useRouter()
-const interviewStore = useInterviewStore()
+const conversationStore = useConversationStore()
 const preferenceStore = usePreferenceStore()
 const t = (key: string) => {
   const en: Record<string, string> = {
-    historyTitle: 'Interview History',
-    searchPlaceholder: 'Search records...',
-    totalInterviews: 'Total Interviews',
+    historyTitle: 'Conversation History',
+    searchPlaceholder: 'Search conversations...',
+    totalSessions: 'Total Conversations',
     completedCount: 'Completed',
     avgScore: 'Average Score',
     totalDuration: 'Total Duration',
-    records: 'Interview Records',
+    records: 'Conversation Records',
     all: 'All',
     completed: 'Completed',
     ongoing: 'Ongoing',
     exportData: 'Export',
     csvFormat: 'CSV',
     excelFormat: 'Excel',
-    interviewTitle: 'Title',
+    chatTitle: 'Title',
     startTime: 'Start Time',
     duration: 'Duration',
     score: 'Score',
@@ -438,20 +441,20 @@ const t = (key: string) => {
   if (preferenceStore.language === 'en-US') return en[key] || key
   return (
     {
-      historyTitle: '面试历史',
-      searchPlaceholder: '搜索面试记录...',
-      totalInterviews: '总面试次数',
-      completedCount: '完成次数',
+      historyTitle: '对话历史',
+      searchPlaceholder: '搜索对话...',
+      totalSessions: '总会话次数',
+      completedCount: '已完成',
       avgScore: '平均得分',
-      totalDuration: '总面试时长',
-      records: '面试记录',
+      totalDuration: '总时长',
+      records: '对话记录',
       all: '全部',
       completed: '已完成',
       ongoing: '进行中',
       exportData: '导出数据',
       csvFormat: 'CSV 格式',
       excelFormat: 'Excel 格式',
-      interviewTitle: '面试标题',
+      chatTitle: '标题',
       startTime: '开始时间',
       duration: '时长',
       score: '得分',
@@ -468,7 +471,7 @@ const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const drawerVisible = ref(false)
-const selectedInterview = ref<any>(null)
+const selectedConversation = ref<ChatSession | null>(null)
 
 // 状态标签映射
 const getStatusLabel = (status: string) => {
@@ -490,35 +493,71 @@ const getStatusLabel = (status: string) => {
   )
 }
 
+const localizeConversationTitle = (title: string) => {
+  if (preferenceStore.language !== 'en-US') return title
+  return title
+    .replace(/前端开发工程师/g, 'Frontend Engineer')
+    .replace(/后端开发工程师/g, 'Backend Engineer')
+    .replace(/全栈工程师/g, 'Full-stack Engineer')
+    .replace(/移动端开发工程师/g, 'Mobile Engineer')
+    .replace(/算法工程师/g, 'Algorithm Engineer')
+    .replace(/测试工程师/g, 'QA Engineer')
+    .replace(/简单/g, 'Easy')
+    .replace(/中等/g, 'Medium')
+    .replace(/困难/g, 'Hard')
+    .replace(/难度/g, 'Difficulty')
+}
+
 // 计算属性
-const stats = computed(() => interviewStore.getInterviewStats)
+const stats = computed(() => ({
+  totalCount: conversationStore.conversationHistory.length,
+  completedCount: conversationStore.conversationHistory.filter(i => i.status === 'completed').length,
+  averageScore: conversationStore.conversationHistory.length
+    ? conversationStore.conversationHistory.reduce((sum, i) => sum + (i.score || 0), 0) / conversationStore.conversationHistory.length
+    : 0,
+  totalDuration: conversationStore.conversationHistory.reduce((sum, i) => sum + (i.duration || 0), 0),
+}))
 
-const totalInterviews = computed(() => interviewStore.interviewHistory.length)
-
-const filteredInterviews = computed(() => {
-  let interviews = interviewStore.interviewHistory
+const filteredWithoutPagination = computed(() => {
+  let conversations = conversationStore.conversationHistory
 
   // 状态筛选
   if (filterType.value !== 'all') {
-    interviews = interviews.filter(
-      interview => interview.status === filterType.value
+    conversations = conversations.filter(
+      conversation => conversation.status === filterType.value
     )
   }
 
   // 搜索筛选
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    interviews = interviews.filter(
-      interview =>
-        interview.title.toLowerCase().includes(query) ||
-        interview.id.toLowerCase().includes(query)
+    conversations = conversations.filter(
+      conversation =>
+        conversation.title.toLowerCase().includes(query) ||
+        conversation.id.toLowerCase().includes(query)
     )
   }
 
-  // 分页
+  return conversations
+})
+
+const totalConversations = computed(() => filteredWithoutPagination.value.length)
+
+const filteredConversations = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
-  return interviews.slice(start, end)
+  return filteredWithoutPagination.value.slice(start, end)
+})
+
+watch([searchQuery, filterType, pageSize], () => {
+  currentPage.value = 1
+})
+
+watch(totalConversations, total => {
+  const maxPage = Math.max(1, Math.ceil(total / pageSize.value))
+  if (currentPage.value > maxPage) {
+    currentPage.value = maxPage
+  }
 })
 
 // 格式化时间
@@ -565,15 +604,15 @@ const getScoreColor = (score: number) => {
 }
 
 // 查看报告
-const viewReport = (interviewId: string) => {
-  router.push(`/report/${interviewId}`)
+const viewReport = (conversationId: string) => {
+  router.push(`/report/${conversationId}`)
 }
 
-// 删除面试记录
-const deleteInterview = async (interviewId: string) => {
+// 删除会话记录
+const deleteConversation = async (conversationId: string) => {
   try {
     await ElMessageBox.confirm(
-      '确定要删除这条面试记录吗？删除后将无法恢复。',
+      '确定要删除这条会话记录吗？删除后将无法恢复。',
       '确认删除',
       {
         confirmButtonText: '确定删除',
@@ -583,14 +622,14 @@ const deleteInterview = async (interviewId: string) => {
     )
 
     // 这里可以调用 API 删除
-    // await api.interview.deleteInterview(interviewId)
+    // await api.conversation.deleteConversation(conversationId)
 
     // 本地删除
-    const index = interviewStore.interviewHistory.findIndex(
-      i => i.id === interviewId
+    const index = conversationStore.conversationHistory.findIndex(
+      conversation => conversation.id === conversationId
     )
     if (index !== -1) {
-      interviewStore.interviewHistory.splice(index, 1)
+      conversationStore.conversationHistory.splice(index, 1)
       ElMessage.success('删除成功')
     }
   } catch {
@@ -600,7 +639,7 @@ const deleteInterview = async (interviewId: string) => {
 
 // 处理行点击
 const handleRowClick = (row: any) => {
-  selectedInterview.value = row
+  selectedConversation.value = row
   drawerVisible.value = true
 }
 
@@ -625,13 +664,13 @@ const handleExport = (format: string) => {
 
 onMounted(() => {
   // 如果没有历史数据，加载模拟数据
-  if (interviewStore.interviewHistory.length === 0) {
-    loadMockHistory()
+  if (conversationStore.conversationHistory.length === 0) {
+    loadMockConversations()
   }
 })
 
 // 加载模拟历史数据
-const loadMockHistory = () => {
+const loadMockConversations = () => {
   const positions = [
     '前端开发工程师',
     '后端开发工程师',
@@ -647,8 +686,8 @@ const loadMockHistory = () => {
     const comm = +(3 + Math.random() * 2).toFixed(1)
     const prob = +(3 + Math.random() * 2).toFixed(1)
 
-    interviewStore.interviewHistory.push({
-      id: `interview_mock_${i}`,
+    conversationStore.conversationHistory.push({
+      id: `conversation_mock_${i}`,
       title: `${positions[i % positions.length]} - ${difficulties[i % 3]}难度`,
       startTime,
       endTime: startTime + duration,
@@ -772,7 +811,7 @@ const loadMockHistory = () => {
       }
     }
 
-    .interview-title {
+    .session-title {
       display: flex;
       align-items: center;
       gap: 12px;
@@ -820,7 +859,7 @@ const loadMockHistory = () => {
       }
     }
 
-    .interview-details {
+    .session-details {
       flex: 1;
       overflow-y: auto;
       padding: 24px;
@@ -1055,7 +1094,7 @@ html[data-theme='dark'] .history-container .drawer-content {
     }
 
     .drawer-content {
-      .interview-details {
+      .session-details {
         padding: 14px;
 
         .details-section .info-grid {

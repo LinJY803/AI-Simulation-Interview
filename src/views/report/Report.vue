@@ -5,22 +5,22 @@
       <div class="header-content">
         <el-button @click="router.back()" class="back-button">
           <el-icon><ArrowLeft /></el-icon>
-          返回
+          {{ t('back') }}
         </el-button>
         <div class="header-info">
-          <h2>面试分析报告</h2>
+          <h2>{{ t('reportTitle') }}</h2>
           <div class="report-meta">
             <span class="meta-item">
               <el-icon><Calendar /></el-icon>
-              {{ formatDate(interview.startTime) }}
+              {{ formatDate(conversation.startTime) }}
             </span>
             <span class="meta-item">
               <el-icon><Timer /></el-icon>
-              {{ formatDuration(interview.duration) }}
+              {{ formatDuration(conversation.duration) }}
             </span>
             <span class="meta-item">
               <el-icon><ChatLineSquare /></el-icon>
-              {{ interview.messages?.length || 0 }} 条对话
+              {{ conversation.messages?.length || 0 }} {{ t('dialogs') }}
             </span>
           </div>
         </div>
@@ -28,13 +28,20 @@
       <div class="header-actions">
         <el-dropdown @command="handleExport">
           <el-button type="primary">
-            导出报告<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+            {{ t('exportReport')
+            }}<el-icon class="el-icon--right"><ArrowDown /></el-icon>
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="pdf">PDF 格式</el-dropdown-item>
-              <el-dropdown-item command="html">HTML 格式</el-dropdown-item>
-              <el-dropdown-item command="image">图片格式</el-dropdown-item>
+              <el-dropdown-item command="pdf">{{
+                t('pdfFormat')
+              }}</el-dropdown-item>
+              <el-dropdown-item command="html">{{
+                t('htmlFormat')
+              }}</el-dropdown-item>
+              <el-dropdown-item command="image">{{
+                t('imageFormat')
+              }}</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -48,14 +55,14 @@
         <template #header>
           <div class="section-header">
             <el-icon><StarFilled /></el-icon>
-            <span>总体评分</span>
+            <span>{{ t('overallRating') }}</span>
           </div>
         </template>
         <div class="overall-content">
           <div class="score-circle">
             <div class="circle-content">
               <div class="score-value">{{ overallScore.toFixed(1) }}</div>
-              <div class="score-label">综合得分</div>
+              <div class="score-label">{{ t('overallScore') }}</div>
             </div>
             <svg width="120" height="120" class="score-chart">
               <circle
@@ -82,7 +89,7 @@
           </div>
           <div class="score-details">
             <div class="score-item">
-              <label>技术能力</label>
+              <label>{{ t('techAbility') }}</label>
               <el-progress
                 :percentage="(technicalScore / 5) * 100"
                 :color="getScoreColor(technicalScore)"
@@ -93,7 +100,7 @@
               >
             </div>
             <div class="score-item">
-              <label>沟通表达</label>
+              <label>{{ t('communication') }}</label>
               <el-progress
                 :percentage="(communicationScore / 5) * 100"
                 :color="getScoreColor(communicationScore)"
@@ -104,7 +111,7 @@
               >
             </div>
             <div class="score-item">
-              <label>问题解决</label>
+              <label>{{ t('problemSolving') }}</label>
               <el-progress
                 :percentage="(problemSolvingScore / 5) * 100"
                 :color="getScoreColor(problemSolvingScore)"
@@ -125,7 +132,7 @@
             <template #header>
               <div class="section-header">
                 <el-icon><DataAnalysis /></el-icon>
-                <span>能力雷达图</span>
+                <span>{{ t('abilityRadar') }}</span>
               </div>
             </template>
             <div class="chart-container" ref="radarChartRef"></div>
@@ -136,7 +143,7 @@
             <template #header>
               <div class="section-header">
                 <el-icon><PieChart /></el-icon>
-                <span>能力分布</span>
+                <span>{{ t('abilityDistribution') }}</span>
               </div>
             </template>
             <div class="chart-container" ref="pieChartRef"></div>
@@ -151,7 +158,7 @@
             <template #header>
               <div class="section-header">
                 <el-icon><SuccessFilled /></el-icon>
-                <span>优势亮点</span>
+                <span>{{ t('strengthHighlights') }}</span>
               </div>
             </template>
             <ul class="analysis-list">
@@ -167,7 +174,7 @@
             <template #header>
               <div class="section-header">
                 <el-icon><WarningFilled /></el-icon>
-                <span>改进建议</span>
+                <span>{{ t('improvementSuggestions') }}</span>
               </div>
             </template>
             <ul class="analysis-list">
@@ -185,7 +192,7 @@
         <template #header>
           <div class="section-header">
             <el-icon><Document /></el-icon>
-            <span>详细分析报告</span>
+            <span>{{ t('detailedAnalysis') }}</span>
           </div>
         </template>
         <div class="analysis-content">
@@ -203,7 +210,7 @@
             <div class="analysis-body">
               <p>{{ analysis.description }}</p>
               <div v-if="analysis.examples" class="analysis-examples">
-                <span class="examples-label">示例：</span>
+                <span class="examples-label">{{ t('examples') }}：</span>
                 <ul>
                   <li v-for="(example, idx) in analysis.examples" :key="idx">
                     {{ example }}
@@ -220,7 +227,7 @@
         <template #header>
           <div class="section-header">
             <el-icon><ChatLineSquare /></el-icon>
-            <span>关键对话记录</span>
+            <span>{{ t('keyDialogs') }}</span>
           </div>
         </template>
         <div class="dialogue-content">
@@ -237,7 +244,11 @@
               />
               <div class="dialogue-info">
                 <div class="dialogue-name">
-                  {{ message.role === 'assistant' ? 'AI 面试官' : '应聘者' }}
+                  {{
+                    message.role === 'assistant'
+                      ? t('aiAssistant')
+                      : t('user')
+                  }}
                 </div>
                 <div class="dialogue-time">
                   {{ formatTime(message.timestamp) }}
@@ -270,16 +281,16 @@
         <template #header>
           <div class="section-header">
             <el-icon><Collection /></el-icon>
-            <span>总结与建议</span>
+            <span>{{ t('summaryAndAdvice') }}</span>
           </div>
         </template>
         <div class="summary-content">
           <div class="summary-overall">
-            <h4>总体评价</h4>
+            <h4>{{ t('overallReview') }}</h4>
             <p>{{ summary.overall }}</p>
           </div>
           <div class="summary-tips">
-            <h4>提升建议</h4>
+            <h4>{{ t('improvementTips') }}</h4>
             <ul>
               <li v-for="(tip, index) in summary.tips" :key="index">
                 {{ tip }}
@@ -287,19 +298,19 @@
             </ul>
           </div>
           <div class="summary-next">
-            <h4>下一步行动</h4>
+            <h4>{{ t('nextActions') }}</h4>
             <div class="next-actions">
-              <el-button type="primary" @click="startNewInterview">
+              <el-button type="primary" @click="startNewChat">
                 <el-icon><VideoPlay /></el-icon>
-                开始新的面试
+                {{ t('startNewSession') }}
               </el-button>
               <el-button @click="viewHistory">
                 <el-icon><Clock /></el-icon>
-                查看历史记录
+                {{ t('viewHistory') }}
               </el-button>
               <el-button @click="downloadReport">
                 <el-icon><Download /></el-icon>
-                下载完整报告
+                {{ t('downloadFullReport') }}
               </el-button>
             </div>
           </div>
@@ -312,17 +323,83 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useInterviewStore } from '@/store'
-import { api } from '@/service/api'
+import { useConversationStore, usePreferenceStore } from '@/store'
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
+import type { ChatMessage } from '@/store'
 
 type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger'
 type AlertType = 'success' | 'warning' | 'info' | 'error'
 
 const route = useRoute()
 const router = useRouter()
-const interviewStore = useInterviewStore()
+const conversationStore = useConversationStore()
+const preferenceStore = usePreferenceStore()
+const t = (key: string) => {
+  const en: Record<string, string> = {
+    back: 'Back',
+    reportTitle: '对话分析报告',
+    dialogs: 'messages',
+    exportReport: 'Export Report',
+    pdfFormat: 'PDF',
+    htmlFormat: 'HTML',
+    imageFormat: 'Image',
+    overallRating: 'Overall Rating',
+    overallScore: 'Overall Score',
+    techAbility: 'Technical',
+    communication: 'Communication',
+    problemSolving: 'Problem Solving',
+    abilityRadar: 'Capability Radar',
+    abilityDistribution: 'Capability Distribution',
+    strengthHighlights: 'Strengths',
+    improvementSuggestions: 'Suggestions',
+    detailedAnalysis: 'Detailed Analysis',
+    examples: 'Examples',
+    keyDialogs: 'Key Dialogues',
+    aiAssistant: 'AI Assistant',
+    user: 'User',
+    summaryAndAdvice: 'Summary & Advice',
+    overallReview: 'Overall Review',
+    improvementTips: 'Improvement Tips',
+    nextActions: 'Next Actions',
+    startNewSession: '开始新的会话',
+    viewHistory: 'View History',
+    downloadFullReport: 'Download Full Report'
+  }
+  if (preferenceStore.language === 'en-US') return en[key] || key
+  return (
+    {
+      back: '返回',
+      reportTitle: '对话分析报告',
+      dialogs: '条消息',
+      exportReport: '导出报告',
+      pdfFormat: 'PDF 格式',
+      htmlFormat: 'HTML 格式',
+      imageFormat: '图片格式',
+      overallRating: '总体评分',
+      overallScore: '综合得分',
+      techAbility: '技术能力',
+      communication: '沟通表达',
+      problemSolving: '问题解决',
+      abilityRadar: '能力雷达图',
+      abilityDistribution: '能力分布',
+      strengthHighlights: '优势亮点',
+      improvementSuggestions: '改进建议',
+      detailedAnalysis: '详细分析报告',
+      examples: '示例',
+      keyDialogs: '关键对话记录',
+      aiAssistant: 'AI 助手',
+      user: '我',
+      summaryAndAdvice: '总结与建议',
+      overallReview: '总体评价',
+      improvementTips: '提升建议',
+      nextActions: '下一步行动',
+      startNewSession: '开始新的会话',
+      viewHistory: '查看历史记录',
+      downloadFullReport: '下载完整报告'
+    }[key] || key
+  )
+}
 
 // 图表引用
 const radarChartRef = ref<HTMLElement>()
@@ -331,16 +408,23 @@ const pieChartRef = ref<HTMLElement>()
 // 图表实例
 let radarChart: echarts.ECharts | null = null
 let pieChart: echarts.ECharts | null = null
+const handleWindowResize = () => {
+  radarChart?.resize()
+  pieChart?.resize()
+}
 
-// 获取面试数据
-const interviewId = route.params.id as string
-const interview = computed(() => {
+// 获取对话数据
+const conversationId = route.params.id as string
+const conversation = computed(() => {
   return (
-    interviewStore.getInterviewById(interviewId) || {
-      title: '面试报告',
+    conversationStore.getConversationById(conversationId) || {
+      id: conversationId,
+      title: '对话报告',
       startTime: Date.now(),
+      endTime: Date.now(),
       duration: 0,
-      messages: [],
+      status: 'completed' as const,
+      messages: [] as ChatMessage[],
       analysis: {
         technicalScore: 0,
         communicationScore: 0,
@@ -355,60 +439,92 @@ const interview = computed(() => {
 })
 
 // 计算属性
-const overallScore = computed(() => interview.value.analysis?.overallScore || 0)
+const overallScore = computed(() => conversation.value.analysis?.overallScore || 0)
 const technicalScore = computed(
-  () => interview.value.analysis?.technicalScore || 0
+  () => conversation.value.analysis?.technicalScore || 0
 )
 const communicationScore = computed(
-  () => interview.value.analysis?.communicationScore || 0
+  () => conversation.value.analysis?.communicationScore || 0
 )
 const problemSolvingScore = computed(
-  () => interview.value.analysis?.problemSolvingScore || 0
+  () => conversation.value.analysis?.problemSolvingScore || 0
 )
-const strengths = computed(() => interview.value.analysis?.strengths || [])
-const suggestions = computed(() => interview.value.analysis?.suggestions || [])
+const strengths = computed(() => conversation.value.analysis?.strengths || [])
+const suggestions = computed(() => conversation.value.analysis?.suggestions || [])
 
 // 详细分析数据
 const detailedAnalysis = computed(() => [
   {
-    title: '技术知识掌握',
+    title:
+      preferenceStore.language === 'en-US'
+        ? 'Technical Knowledge'
+        : '技术知识掌握',
     score: technicalScore.value,
     description:
-      '评估您对相关技术的理解深度和广度，包括基础概念、框架使用、最佳实践等。',
-    examples: ['对 Vue3 响应式原理的理解', 'TypeScript 类型系统的应用']
+      preferenceStore.language === 'en-US'
+        ? 'Evaluates depth and breadth of technology understanding, including fundamentals, framework usage and best practices.'
+        : '评估您对相关技术的理解深度和广度，包括基础概念、框架使用、最佳实践等。',
+    examples:
+      preferenceStore.language === 'en-US'
+        ? ['Understanding Vue3 reactivity', 'Applying TypeScript type system']
+        : ['对 Vue3 响应式原理的理解', 'TypeScript 类型系统的应用']
   },
   {
-    title: '问题解决能力',
+    title:
+      preferenceStore.language === 'en-US' ? 'Problem Solving' : '问题解决能力',
     score: problemSolvingScore.value,
     description:
-      '评估您分析问题、设计方案和实施解决方案的能力，包括算法思维和系统设计。',
-    examples: ['复杂问题的分解思路', '系统设计的权衡考虑']
+      preferenceStore.language === 'en-US'
+        ? 'Evaluates problem analysis, solution design and implementation capability, including algorithmic thinking and system design.'
+        : '评估您分析问题、设计方案和实施解决方案的能力，包括算法思维和系统设计。',
+    examples:
+      preferenceStore.language === 'en-US'
+        ? ['Complex problem decomposition', 'System design trade-off thinking']
+        : ['复杂问题的分解思路', '系统设计的权衡考虑']
   },
   {
-    title: '沟通表达能力',
+    title:
+      preferenceStore.language === 'en-US' ? 'Communication' : '沟通表达能力',
     score: communicationScore.value,
     description:
-      '评估您清晰表达思想、逻辑陈述和有效沟通的能力，包括回答问题的条理性。',
-    examples: ['技术概念的通俗解释', '项目经验的清晰描述']
+      preferenceStore.language === 'en-US'
+        ? 'Evaluates clear expression, logical narration and effective communication, including structured answering.'
+        : '评估您清晰表达思想、逻辑陈述和有效沟通的能力，包括回答问题的条理性。',
+    examples:
+      preferenceStore.language === 'en-US'
+        ? [
+            'Simple explanation of technical concepts',
+            'Clear project experience description'
+          ]
+        : ['技术概念的通俗解释', '项目经验的清晰描述']
   }
 ])
 
 // 关键对话记录
 const keyMessages = computed(() => {
-  const messages = interview.value.messages || []
-  // 提取有意义的对话
+  const messages = conversation.value.messages || []
   return messages.slice(0, 5).map((msg, index) => ({
     ...msg,
     analysis:
       index % 2 === 0
-        ? { type: 'success' as TagType, label: '优秀回答' }
+        ? {
+            type: 'success' as TagType,
+            label:
+              preferenceStore.language === 'en-US'
+                ? 'Strong Answer'
+                : '优秀回答'
+          }
         : null,
     feedback:
       index === 1
         ? {
             type: 'warning' as AlertType,
-            title: '改进建议',
-            content: '可以更详细地描述技术实现细节'
+            title:
+              preferenceStore.language === 'en-US' ? 'Suggestion' : '改进建议',
+            content:
+              preferenceStore.language === 'en-US'
+                ? 'You can describe implementation details in more depth.'
+                : '可以更详细地描述技术实现细节'
           }
         : null
   }))
@@ -417,13 +533,23 @@ const keyMessages = computed(() => {
 // 总结数据
 const summary = computed(() => ({
   overall:
-    '您在这次面试中展现了扎实的技术基础和良好的沟通能力。特别是在问题解决方面表现出色，能够快速理解问题并提出解决方案。',
-  tips: [
-    '加强系统设计相关知识的积累',
-    '练习更多实际场景的技术问题',
-    '提高回答问题的条理性和逻辑性',
-    '学习更多行业最佳实践和模式'
-  ]
+    preferenceStore.language === 'en-US'
+      ? 'You demonstrated solid fundamentals and clear communication. You performed especially well in problem solving and produced practical solutions quickly.'
+      : '您在这次对话中展现了扎实的技术基础和良好的沟通能力。特别是在问题解决方面表现出色，能够快速理解问题并提出解决方案。',
+  tips:
+    preferenceStore.language === 'en-US'
+      ? [
+          'Strengthen system design knowledge',
+          'Practice more real-world technical scenarios',
+          'Improve answer structure and clarity',
+          'Learn more industry best practices'
+        ]
+      : [
+          '加强系统设计相关知识的积累',
+          '练习更多实际场景的技术问题',
+          '提高回答问题的条理性和逻辑性',
+          '学习更多行业最佳实践和模式'
+        ]
 }))
 
 // 格式化时间
@@ -478,82 +604,49 @@ const triggerBlobDownload = (blob: Blob, filename: string) => {
 
 const buildLocalReportText = () => {
   const lines: string[] = []
-  lines.push(`标题: ${interview.value.title}`)
-  lines.push(`开始时间: ${formatDate(interview.value.startTime)}`)
-  lines.push(`时长: ${formatDuration(interview.value.duration)}`)
+  lines.push(`标题: ${conversation.value.title}`)
+  lines.push(`开始时间: ${formatDate(conversation.value.startTime)}`)
+  lines.push(`时长: ${formatDuration(conversation.value.duration)}`)
   lines.push(`综合得分: ${overallScore.value.toFixed(1)}`)
   lines.push('')
   lines.push('对话记录:')
-  for (const m of interview.value.messages || []) {
+  for (const m of conversation.value.messages || []) {
     lines.push(
       `[${formatTime(m.timestamp)}] ${
-        m.role === 'assistant' ? '面试官' : '候选人'
+        m.role === 'assistant' ? '智能体' : '我'
       }: ${m.content}`
     )
   }
   return lines.join('\n')
 }
 
-const handleExport = async (format: string) => {
-  try {
-    const safeTitle = interview.value.title.replace(/[\\/:*?"<>|]/g, '_')
-    if (format === 'pdf') {
-      const htmlBlob = await api.interview.exportInterviewReport(
-        interviewId,
-        'html'
-      )
-      const html = await htmlBlob.text()
-      const printWindow = window.open('', '_blank')
-      if (!printWindow) {
-        ElMessage.error('浏览器拦截了新窗口，请允许弹窗后重试')
-        return
-      }
-      printWindow.document.write(html)
-      printWindow.document.close()
-      printWindow.focus()
-      printWindow.print()
-      ElMessage.success('已打开打印窗口，可另存为 PDF')
-      return
-    }
-    if (format === 'image') {
-      ElMessage.info('图片导出暂未开放，已为你导出 HTML')
-      const blob = await api.interview.exportInterviewReport(
-        interviewId,
-        'html'
-      )
-      triggerBlobDownload(blob, `${safeTitle}.html`)
-      return
-    }
-    const normalized = format === 'html' ? 'html' : 'txt'
-    const blob = await api.interview.exportInterviewReport(
-      interviewId,
-      normalized as 'txt' | 'html'
+const handleExport = (format: string) => {
+  const safeTitle = conversation.value.title.replace(/[\\/:*?"<>|]/g, '_')
+  const text = buildLocalReportText()
+  if (format === 'pdf' || format === 'image') {
+    const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>${safeTitle}</title></head><body><pre>${text}</pre></body></html>`
+    triggerBlobDownload(
+      new Blob([html], { type: 'text/html;charset=utf-8' }),
+      `${safeTitle}.html`
     )
-    triggerBlobDownload(blob, `${safeTitle}.${normalized}`)
-    ElMessage.success('导出成功')
-  } catch (error) {
-    const message = error instanceof Error ? error.message : '导出失败'
-    if (message.includes('404') || message.includes('面试记录不存在')) {
-      const safeTitle = interview.value.title.replace(/[\\/:*?"<>|]/g, '_')
-      const normalized = format === 'html' ? 'html' : 'txt'
-      const text = buildLocalReportText()
-      if (normalized === 'html') {
-        const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>${safeTitle}</title></head><body><pre>${text}</pre></body></html>`
-        triggerBlobDownload(
-          new Blob([html], { type: 'text/html;charset=utf-8' }),
-          `${safeTitle}.html`
-        )
-      } else {
-        triggerBlobDownload(
-          new Blob([text], { type: 'text/plain;charset=utf-8' }),
-          `${safeTitle}.txt`
-        )
-      }
-      ElMessage.success('已使用本地报告导出')
-      return
-    }
-    ElMessage.error(message)
+    ElMessage.info(format === 'pdf' ? '已导出为 HTML，请自行打印为 PDF' : '图片导出暂未开放，已导出 HTML')
+    return
   }
+
+  const normalized = format === 'html' ? 'html' : 'txt'
+  if (normalized === 'html') {
+    const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>${safeTitle}</title></head><body><pre>${text}</pre></body></html>`
+    triggerBlobDownload(
+      new Blob([html], { type: 'text/html;charset=utf-8' }),
+      `${safeTitle}.html`
+    )
+  } else {
+    triggerBlobDownload(
+      new Blob([text], { type: 'text/plain;charset=utf-8' }),
+      `${safeTitle}.txt`
+    )
+  }
+  ElMessage.success('导出成功')
 }
 
 // 下载报告
@@ -561,9 +654,9 @@ const downloadReport = async () => {
   await handleExport('txt')
 }
 
-// 开始新的面试
-const startNewInterview = () => {
-  router.push('/interview')
+// 开始新的会话
+const startNewChat = () => {
+  router.push('/chat')
 }
 
 // 查看历史记录
@@ -692,17 +785,11 @@ onMounted(() => {
   initPieChart()
 
   // 监听窗口大小变化，重新渲染图表
-  window.addEventListener('resize', () => {
-    radarChart?.resize()
-    pieChart?.resize()
-  })
+  window.addEventListener('resize', handleWindowResize)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', () => {
-    radarChart?.resize()
-    pieChart?.resize()
-  })
+  window.removeEventListener('resize', handleWindowResize)
 
   radarChart?.dispose()
   pieChart?.dispose()
@@ -1049,6 +1136,9 @@ html[data-theme='dark'] .report-container {
 }
 
 html[data-theme='dark'] .report-container .analysis-section .analysis-list li,
+html[data-theme='dark'] .report-container .analysis-section,
+html[data-theme='dark'] .report-container .detailed-analysis,
+html[data-theme='dark'] .report-container .dialogue-section,
 html[data-theme='dark'] .report-container .detailed-analysis .analysis-examples,
 html[data-theme='dark'] .report-container .dialogue-section .dialogue-message {
   background: #212833;

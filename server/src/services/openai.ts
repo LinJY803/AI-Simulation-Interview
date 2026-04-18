@@ -15,6 +15,9 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import type { InterviewMessage, InterviewAnalysis } from "./storage.js";
+import { buildRetrievalContext } from "./rag.js";
+import { chatWithOllama, streamChatWithOllama } from './ollama.js';
+import { extractMemoryRules, applyMemoryRulesToInterview } from './rag.js';
 
 // ==================== 初始化 OpenAI 客户端 ====================
 
@@ -151,19 +154,20 @@ function modelCandidates(requested?: string): string[] {
   return [primary, ...all.filter((m) => m !== primary)];
 }
 
-// ==================== 面试官 System Prompt ====================
+// ==================== 通用对话 System Prompt ====================
 
-const INTERVIEWER_SYSTEM_PROMPT = `你是一位资深的技术面试官，正在进行一场模拟面试。请遵循以下规则：
-1. 根据候选人的回答，提出有针对性的追问
-2. 考察维度：技术深度、项目经验、系统设计、问题解决能力
-3. 每次只问一个问题，等候选人回答后再追问
-4. 语气专业但友好，遇到回答不好时给予鼓励
-5. 不要重复已经问过的问题
-6. 如果候选人回答得很好，可以适当深入或换个话题
-7. 回复简洁，控制在 100 字以内`;
+const CHAT_SYSTEM_PROMPT = `你是一个通用对话智能体，负责自然、友好、专业地和用户持续交流。
+请遵循以下规则：
+1. 根据用户的最新问题给出直接、有帮助的回复
+2. 可以追问澄清，但不要把自己描述成面试官、考官或面试系统
+3. 如果用户没有明确要求，不要主动切换到面试、测评或考核语气
+4. 语气自然、简洁、友好，避免模板化表达
+5. 回复尽量聚焦当前话题，不要刻意延伸到面试流程
+6. 如果需要总结，请用条目化方式输出，避免冗长
+7. 优先利用已提供的长期记忆与检索上下文回答，不要重复提问已经知道的信息`;
 
-const ANALYSIS_SYSTEM_PROMPT = `你是一个专业的面试评估系统。请根据面试对话记录，
-从三个维度（1-5分）对候选人进行评估。
+const ANALYSIS_SYSTEM_PROMPT = `你是一个对话分析系统。请根据聊天记录，
+从三个维度（1-5分）对对话质量进行评估。
 请严格按以下 JSON 格式回复，不要包含任何其他文字：
 {
   "technicalScore": 4.0,
@@ -174,7 +178,6 @@ const ANALYSIS_SYSTEM_PROMPT = `你是一个专业的面试评估系统。请根
   "weaknesses": ["劣势1", "劣势2"],
   "suggestions": ["建议1", "建议2", "建议3"]
 }`;
-
 // ==================== 导出方法 ====================
 
 /**
@@ -187,8 +190,15 @@ const ANALYSIS_SYSTEM_PROMPT = `你是一个专业的面试评估系统。请根
  */
 export async function* streamChat(
   messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
-  options?: { model?: string; temperature?: number },
+  options?: { model?: string; temperature?: number; provider?: 'openai' | 'ollama' },
 ): AsyncGenerator<string> {
+  if (options?.provider === 'ollama' || process.env.LLM_PROVIDER === 'ollama') {
+    for await (const chunk of streamChatWithOllama(messages, options)) {
+      yield chunk
+    }
+    return
+  }
+
   const client = ensureAIClient();
   let lastError: any = null;
 
@@ -197,7 +207,7 @@ export async function* streamChat(
       const stream = await client.chat.completions.create({
         model,
         messages: [
-          { role: "system", content: INTERVIEWER_SYSTEM_PROMPT },
+          { role: "system", content: CHAT_SYSTEM_PROMPT },
           ...messages,
         ],
         stream: true,

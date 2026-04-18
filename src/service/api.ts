@@ -39,7 +39,7 @@
  */
 
 import axios from "axios";
-import type { InterviewAnalysis, InterviewMessage, UserInfo } from "@/store";
+import type { ChatAnalysis as InterviewAnalysis, ChatMessage as InterviewMessage, UserInfo } from "@/store";
 import { AudioService } from "@/service/audio";
 
 // ==================== 1. 类型定义 ====================

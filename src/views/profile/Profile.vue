@@ -260,15 +260,15 @@
               {{ t('changePassword') }}
             </el-button>
 
-            <el-button class="security-action-btn" @click="manageDevices">
+            <!-- <el-button class="security-action-btn" @click="manageDevices">
               <el-icon><Monitor /></el-icon>
               {{ t('deviceManagement') }}
-            </el-button>
+            </el-button> -->
 
-            <el-button class="security-action-btn" @click="viewActivityLog">
+            <!-- <el-button class="security-action-btn" @click="viewActivityLog">
               <el-icon><Document /></el-icon>
               {{ t('activityLog') }}
-            </el-button>
+            </el-button> -->
 
             <el-divider />
 
@@ -289,7 +289,7 @@
               <h4>{{ t('dangerZone') }}</h4>
               <p class="danger-hint">{{ t('dangerHint') }}</p>
 
-              <el-button
+              <!-- <el-button
                 class="security-action-btn"
                 type="danger"
                 plain
@@ -297,7 +297,7 @@
               >
                 <el-icon><SwitchButton /></el-icon>
                 {{ t('logoutAllDevices') }}
-              </el-button>
+              </el-button> -->
 
               <el-button
                 class="security-action-btn"
@@ -427,14 +427,14 @@
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useInterviewStore, usePreferenceStore, useUserStore } from '@/store'
+import { useConversationStore, usePreferenceStore, useUserStore } from '@/store'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { api } from '@/service/api'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
-const interviewStore = useInterviewStore()
+const conversationStore = useConversationStore()
 const preferenceStore = usePreferenceStore()
 const t = (key: string) => {
   const en: Record<string, string> = {
@@ -446,7 +446,7 @@ const t = (key: string) => {
     lastLogin: 'Last Login',
     profileStats: 'Statistics',
     refresh: 'Refresh',
-    totalInterviews: 'Total Interviews',
+    totalInterviews: 'Total Conversations',
     completedInterviews: 'Completed',
     averageScore: 'Average Score',
     totalDuration: 'Total Duration',
@@ -491,8 +491,8 @@ const t = (key: string) => {
       lastLogin: '上次登录',
       profileStats: '个人统计',
       refresh: '刷新',
-      totalInterviews: '总面试次数',
-      completedInterviews: '完成面试',
+      totalInterviews: '总会话次数',
+      completedInterviews: '已完成会话',
       averageScore: '平均分数',
       totalDuration: '总时长',
       technicalLevel: '技术水平',
@@ -992,21 +992,21 @@ onMounted(() => {
 })
 
 watch(
-  () => interviewStore.interviewHistory.length,
+  () => conversationStore.conversationHistory.length,
   () => {
     loadUserStats()
   }
 )
 
-// 加载用户统计（与面试历史保持一致）
+// 加载用户统计（与会话历史保持一致）
 const loadUserStats = async () => {
-  const list = interviewStore.interviewHistory || []
-  const completed = list.filter(i => i.status === 'completed')
+  const list = conversationStore.conversationHistory || []
+  const completed = list.filter((i) => i.status === 'completed')
   const totalInterviews = list.length
   const completedInterviews = completed.length
   const scoreList = completed
-    .map(i => Number(i.score || i.analysis?.overallScore || 0))
-    .filter(v => !Number.isNaN(v) && v > 0)
+    .map((i) => Number(i.score || i.analysis?.overallScore || 0))
+    .filter((v) => !Number.isNaN(v) && v > 0)
   const averageScore =
     scoreList.length > 0
       ? scoreList.reduce((sum, v) => sum + v, 0) / scoreList.length
@@ -1047,14 +1047,14 @@ const loadProfile = async () => {
     userInfo.username = p.username || userInfo.username
     userInfo.email = p.email || userInfo.email
     userInfo.avatar = p.avatar || userInfo.avatar
-    userInfo.role = (p.role as any) || userInfo.role
+    userInfo.role = (p.role as 'admin' | 'user') || userInfo.role
     userInfo.createdAt = p.createdAt || userInfo.createdAt
     userInfo.lastLoginAt = p.lastLoginAt || userInfo.lastLoginAt
-    userInfo.status = (p.status as any) || userInfo.status
+    userInfo.status = (p.status as 'active' | 'inactive' | 'banned') || userInfo.status
     profileForm.username = p.username || profileForm.username
     profileForm.email = p.email || profileForm.email
     profileForm.bio = p.bio || ''
-    profileForm.status = (p.status as any) || 'active'
+    profileForm.status = (p.status as 'active' | 'inactive' | 'banned') || 'active'
     profileForm.skills = (p.skills || []) as string[]
     profileForm.notifications = (p.notifications || ['email']) as Array<
       'email' | 'push' | 'sms'

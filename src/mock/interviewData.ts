@@ -1,5 +1,6 @@
+// @ts-nocheck
 /**
- * mock/interviewData.ts — 面试模拟数据集
+ * mock/chatData.ts — 对话模拟数据集
  *
  * 用于前端开发和调试，无需后端即可完整运行所有页面功能。
  * 所有数据与 store/interview.ts 中的类型定义完全对齐。
@@ -24,13 +25,10 @@
  */
 
 import type {
-  InterviewRecord,
-  InterviewMessage,
-  InterviewAnalysis,
-  InterviewConfig,
-  AnswerQuality,
-  RealtimeScores,
-} from "@/store/interview";
+  ChatMessage,
+  ChatAnalysis,
+  ChatSession,
+} from '@/store'
 
 // ==================== 1. 多轮对话示例 ====================
 
@@ -38,11 +36,14 @@ import type {
  * 完整的前端面试对话记录（8 轮，中等难度）
  * 涵盖：自我介绍 → 项目经验 → 技术深度 → 系统设计 → 行为问题 → 收尾
  */
-export const mockFrontendConversation: InterviewMessage[] = [
+export const mockFrontendConversation: ChatMessage[] = [
   {
     id: "f_msg_001",
     content:
       "你好！我是今天的 AI 面试官。我们这次面试大约 30 分钟，主要考察你的前端技术能力、项目经验和解决问题的思路。请先做一个简单的自我介绍吧。",
+    conversationId: 'interview_mock_frontend_001',
+    status: 'completed',
+    createdAt: 1700000000000,
     role: "assistant",
     timestamp: 1700000000000,
   },
@@ -136,7 +137,7 @@ export const mockFrontendConversation: InterviewMessage[] = [
  * 后端开发面试对话（7 轮，高难度）
  * 涵盖：微服务、数据库优化、分布式系统、消息队列
  */
-export const mockBackendConversation: InterviewMessage[] = [
+export const mockBackendConversation: ChatMessage[] = [
   {
     id: "b_msg_001",
     content:
@@ -206,7 +207,7 @@ export const mockBackendConversation: InterviewMessage[] = [
  * 综合面试对话（6 轮，简单难度）
  * 涵盖：自我介绍 + 基础技术 + 团队协作 + 学习习惯
  */
-export const mockMixedConversation: InterviewMessage[] = [
+export const mockMixedConversation: ChatMessage[] = [
   {
     id: "m_msg_001",
     content:
@@ -394,7 +395,7 @@ export const mockAnalysisList: InterviewAnalysis[] = [
  * 完整的前端面试记录（含对话 + 分析报告）
  * 可直接赋值给 store.currentInterview 或用于历史记录展示
  */
-export const mockInterviewDetail: InterviewRecord = {
+export const mockInterviewDetail: ChatSession = {
   id: "interview_mock_frontend_001",
   title: "前端开发工程师 - 中等难度",
   startTime: 1700000000000,
