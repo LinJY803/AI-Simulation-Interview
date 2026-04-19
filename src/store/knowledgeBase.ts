@@ -384,7 +384,7 @@ export const useKnowledgeBaseStore = defineStore('knowledgeBase', {
           const code = bytes[i]
           if (code >= 32 || code === 10 || code === 13 || code === 9) text += String.fromCharCode(code)
         }
-        return cleanText(text.replace(/\/g, ' '))
+        return cleanText(text.replace(/\\/g, ' '))
       }
 
       return cleanText(await file.text())

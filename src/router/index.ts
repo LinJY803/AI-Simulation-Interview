@@ -25,12 +25,6 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '智能体对话 - AI对话系统' }
       },
       {
-        path: 'history',
-        name: 'History',
-        component: () => import('@/views/history/History.vue'),
-        meta: { title: '会话历史 - AI对话系统' }
-      },
-      {
         path: 'report/:id',
         name: 'Report',
         component: () => import('@/views/report/Report.vue'),

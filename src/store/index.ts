@@ -3,6 +3,7 @@ export { useUserStore } from './user'
 export { usePreferenceStore } from './preference'
 export { useMemoryStore } from './memory'
 export { useKnowledgeBaseStore } from './knowledgeBase'
+export { useAgentStore } from './agent'
 
 export type { ChatMessage, ChatAnalysis, ChatSession } from './chat'
 export type { UserInfo } from './user'

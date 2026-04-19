@@ -111,7 +111,23 @@ export function indexChunksForRecord(recordId: string, chunks: string[], metadat
   })
 }
 
-export function buildRetrievalContext(query: string, limit = 5): RetrievalHit[] {
+export async function buildRetrievalContext(
+  query: string,
+  limit = 5,
+  options?: { knowledgeBaseId?: string },
+): Promise<RetrievalHit[]> {
   const vector = vectorStore.embed(query)
-  return vectorStore.search(vector, limit).map((item) => ({ id: item.id, text: item.text, score: item.score, metadata: item.metadata as RetrievalHit['metadata'] | undefined }))
+  const rawHits = await vectorStore.search(vector, Math.max(limit * 6, 20))
+  const filtered = options?.knowledgeBaseId
+    ? rawHits.filter((item) => (item.metadata as RetrievalHit['metadata'] | undefined)?.knowledgeBaseId === options.knowledgeBaseId)
+    : rawHits
+
+  return filtered
+    .slice(0, limit)
+    .map((item) => ({
+      id: item.id,
+      text: item.text,
+      score: item.score,
+      metadata: item.metadata as RetrievalHit['metadata'] | undefined,
+    }))
 }

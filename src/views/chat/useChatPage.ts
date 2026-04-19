@@ -1,7 +1,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api } from '@/service/api'
 import { audioService } from '@/service/audio'
-import { useKnowledgeBaseStore, useMemoryStore, useUserStore } from '@/store'
+import { useAgentStore, useKnowledgeBaseStore, useMemoryStore, useUserStore } from '@/store'
 import type { ChatConversation, ChatMessage } from '@/types/chat'
 import { ElMessage } from 'element-plus'
 import {
@@ -22,6 +22,7 @@ export function useChatPage() {
   const userStore = useUserStore()
   const memoryStore = useMemoryStore()
   const knowledgeBaseStore = useKnowledgeBaseStore()
+  const agentStore = useAgentStore()
 
   const assistantAvatar = computed(() => DEFAULT_AI_AVATAR)
   const userAvatar = computed(() => userStore.userInfo?.avatar || '')
@@ -39,11 +40,23 @@ export function useChatPage() {
   let pendingAssistantText = ''
   let streamFinished = false
   let activeTypingTarget = { conversationId: '', messageId: '' }
+  let streamAbortController: AbortController | null = null
 
   const activeConversation = computed(() =>
     conversationItems.value.find(c => c.id === activeConversationId.value) ?? null,
   )
-  const knowledgeBaseId = computed(() => knowledgeBaseStore.knowledgeBases.find((item) => item.status === 'active')?.id || null)
+  const activeAgent = computed(() => agentStore.activeAgent)
+  const activeConversationAgent = computed(() => {
+    const convAgentId = activeConversation.value?.agentId
+    if (convAgentId) {
+      return agentStore.agents.find((item) => item.id === convAgentId) || null
+    }
+    return activeAgent.value
+  })
+  const activeAgentId = computed(() => activeConversationAgent.value?.id || '')
+  const knowledgeBaseId = computed(() =>
+    activeConversationAgent.value?.defaultKnowledgeBaseId || knowledgeBaseStore.knowledgeBases.find((item) => item.status === 'active')?.id || null,
+  )
   const activeMessages = computed(() => activeConversation.value?.messages ?? [])
   const activeRecentMessages = computed(() => getRecentMessages(activeMessages.value, CHAT_CONTEXT_LIMIT))
   const isActiveConversationGenerating = computed(
@@ -195,6 +208,23 @@ export function useChatPage() {
     typingTimer = null
   }
 
+  const stopAssistantReply = () => {
+    streamAbortController?.abort()
+    streamAbortController = null
+    stopTyping()
+    pendingAssistantText = ''
+    streamFinished = false
+    const conv = conversationItems.value.find(c => c.id === generatingConversationId.value)
+    const msg = conv?.messages.find(m => m.id === activeReplyMessageId.value)
+    if (msg) {
+      msg.status = 'completed'
+      msg.updatedAt = Date.now()
+      saveConversations()
+    }
+    generatingConversationId.value = null
+    activeReplyMessageId.value = null
+  }
+
   const applyTypingStep = () => {
     const { conversationId, messageId } = activeTypingTarget
     const conv = conversationItems.value.find(c => c.id === conversationId)
@@ -281,6 +311,10 @@ export function useChatPage() {
 
   const selectConversation = (id: string) => {
     activeConversationId.value = id
+    const conv = conversationItems.value.find((item) => item.id === id)
+    if (conv?.agentId) {
+      agentStore.setActiveAgent(conv.agentId)
+    }
   }
 
   const createNewConversation = (focus = true, withWelcome = false) => {
@@ -290,6 +324,7 @@ export function useChatPage() {
       id,
       title: `新会话 ${conversationItems.value.length + 1}`,
       updatedAt: now,
+      agentId: agentStore.activeAgentId || agentStore.agents[0]?.id,
       messages: withWelcome
         ? [
             createAssistantMessage({
@@ -350,6 +385,7 @@ export function useChatPage() {
     pendingAssistantText = ''
     streamFinished = false
     activeTypingTarget = { conversationId, messageId: `msg-${Date.now()}-assistant` }
+    streamAbortController = new AbortController()
 
     const assistantNow = Date.now()
     const assistantMsg: ChatMessage = createAssistantMessage({
@@ -365,24 +401,19 @@ export function useChatPage() {
     activeReplyMessageId.value = assistantMsg.id
     saveConversations()
 
-    const messages = [
-      { role: 'system' as const, content: DEFAULT_SYSTEM_PROMPT },
-      ...(conv.summary ? [{ role: 'system' as const, content: `会话摘要：${conv.summary}` }] : []),
-      ...activeRecentMessages.value.map(m => ({
-        role: m.role === 'assistant' ? ('assistant' as const) : ('user' as const),
-        content: m.content,
-      })),
-    ]
+    const memoryContext = (activeConversationAgent.value?.memoryEnabled ?? true)
+      ? memoryStore
+          .list({ minWeight: 0.55 })
+          .slice(0, 8)
+          .map((item) => `[${item.type}] ${item.key}: ${typeof item.value === 'string' ? item.value : JSON.stringify(item.value)}`)
+      : []
 
-    const memoryContext = memoryStore
-      .list({ minWeight: 0.55 })
-      .slice(0, 8)
-      .map((item) => `[${item.type}] ${item.key}: ${typeof item.value === 'string' ? item.value : JSON.stringify(item.value)}`)
-
-    const kbContext = knowledgeBaseStore.knowledgeBases
-      .filter((kb) => kb.status === 'active' && kb.indexStatus === 'ready')
-      .slice(0, 5)
-      .map((kb) => `知识库「${kb.name}」(${kb.documentCount} 文档, ${kb.chunkCount} chunks)`)
+    const kbContext = (activeConversationAgent.value?.ragEnabled ?? true)
+      ? knowledgeBaseStore.knowledgeBases
+          .filter((kb) => kb.status === 'active' && kb.indexStatus === 'ready')
+          .slice(0, 5)
+          .map((kb) => `知识库「${kb.name}」(${kb.documentCount} 文档, ${kb.chunkCount} chunks)`)
+      : []
 
     const retrievalContext = [
       memoryContext.length ? `长期记忆：\n${memoryContext.join('\n')}` : '',
@@ -390,8 +421,9 @@ export function useChatPage() {
       conv.summary ? `会话摘要：${conv.summary}` : '',
     ].filter(Boolean)
 
-    const messages = [
-      { role: 'system' as const, content: DEFAULT_SYSTEM_PROMPT },
+    const chatMessages = [
+      { role: 'system' as const, content: activeConversationAgent.value?.systemPrompt || DEFAULT_SYSTEM_PROMPT },
+      ...(conv.summary ? [{ role: 'system' as const, content: `会话摘要：${conv.summary}` }] : []),
       ...retrievalContext.map((content) => ({ role: 'system' as const, content })),
       ...activeRecentMessages.value.map(m => ({
         role: m.role === 'assistant' ? ('assistant' as const) : ('user' as const),
@@ -399,22 +431,51 @@ export function useChatPage() {
       })),
     ]
 
-    await api.gpt.streamChatSSE(messages, {
+    await api.gpt.streamChatSSE(chatMessages, {
       onChunk: chunk => {
         pendingAssistantText += chunk
         if (!typingTimer) applyTypingStep()
+      },
+      onMeta: meta => {
+        const target = conv.messages.find(m => m.id === assistantMsg.id)
+        if (!target) return
+        const citations = (meta?.metadata?.citations || meta?.citations || []) as any[]
+        target.metadata = {
+          ...(target.metadata || {}),
+          citations,
+          retrieval: {
+            ...(target.metadata?.retrieval || {}),
+            hits: citations,
+            citations,
+          },
+        }
+        target.updatedAt = Date.now()
+        saveConversations()
       },
       onDone: text => {
         pendingAssistantText = text || pendingAssistantText
         streamFinished = true
         if (!typingTimer) applyTypingStep()
         updateConversationSummary(conv)
-        syncMemoryFromConversation(conv)
+        if (activeConversationAgent.value?.memoryEnabled ?? true) {
+          syncMemoryFromConversation(conv)
+        }
+        streamAbortController = null
       },
       onError: err => {
         stopTyping()
+        if (err.name === 'AbortError') {
+          const stoppedMsg = conv.messages.find(m => m.id === assistantMsg.id)
+          if (stoppedMsg) {
+            stoppedMsg.status = 'completed'
+            stoppedMsg.updatedAt = Date.now()
+            saveConversations()
+          }
+          return
+        }
         generatingConversationId.value = null
         activeReplyMessageId.value = null
+        streamAbortController = null
         ElMessage.error(err.message || '回复失败')
         const failedMsg = conv.messages.find(m => m.id === assistantMsg.id)
         if (failedMsg) {
@@ -423,6 +484,11 @@ export function useChatPage() {
           saveConversations()
         }
       },
+    }, {
+      userId: userStore.userInfo?.id,
+      agentId: activeAgentId.value || undefined,
+      knowledgeBaseId: knowledgeBaseId.value || undefined,
+      signal: streamAbortController.signal,
     })
   }
 
@@ -468,13 +534,30 @@ export function useChatPage() {
 
   watch(conversationItems, saveConversations, { deep: true })
 
+  watch(
+    [activeConversationId, () => agentStore.agents.length],
+    () => {
+      const conv = activeConversation.value
+      if (!conv) return
+      if (!conv.agentId) {
+        conv.agentId = agentStore.activeAgentId || agentStore.agents[0]?.id || ''
+      }
+      if (conv.agentId) {
+        agentStore.setActiveAgent(conv.agentId)
+      }
+    },
+    { immediate: true },
+  )
+
   onMounted(() => {
     loadConversations()
+    agentStore.fetchAgents().catch(() => undefined)
   })
 
   onUnmounted(() => {
     stopTyping()
     if (isRecording.value) audioService.stopRecording()
+    streamAbortController?.abort()
   })
 
   return {
@@ -504,10 +587,23 @@ export function useChatPage() {
     voiceModeLabel: '语音',
     recordingHint: '正在录音，松开发送',
     holdHint: '按住说话',
+    agentOptions: computed(() => agentStore.agents),
+    activeAgentId,
+    activeAgent: activeConversationAgent,
+    setActiveAgent: (id: string) => {
+      agentStore.setActiveAgent(id)
+      const conv = activeConversation.value
+      if (conv) {
+        conv.agentId = id
+        conv.updatedAt = Date.now()
+        saveConversations()
+      }
+    },
     selectConversation,
     createConversation: createConversationHandler,
     handleSendMessage,
     startRecording,
     stopRecording,
+    stopAssistantReply,
   }
 }

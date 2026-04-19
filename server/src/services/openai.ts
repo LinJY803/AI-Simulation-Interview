@@ -105,27 +105,36 @@ if (isOpenAIConfigured) {
   console.log("[AI] 未配置 API Key，AI 功能将不可用");
 }
 
+function createAIError(message: string, status = 500, code = 'AI_ERROR') {
+  const error = new Error(message) as Error & { status?: number; code?: string }
+  error.status = status
+  error.code = code
+  return error
+}
+
 function ensureAIClient() {
   if (!openai) {
-    throw new Error(
-      "未配置硅基流动密钥，请在 server/.env 中设置 SILICONFLOW_API_KEY（或 OPENAI_API_KEY）",
-    );
+    throw createAIError(
+      '未配置硅基流动密钥，请在 server/.env 中设置 SILICONFLOW_API_KEY（或 OPENAI_API_KEY）',
+      500,
+      'AI_API_KEY_MISSING',
+    )
   }
-  return openai;
+  return openai
 }
 
 function resolveModel(requested?: string) {
   if (requested) {
     if (!allowedModels.has(requested)) {
-      throw new Error(`模型不可用: ${requested}`);
+      throw createAIError(`模型不可用: ${requested}。请检查 SILICONFLOW_ALLOWED_MODELS / OPENAI_ALLOWED_MODELS 配置`, 400, 'AI_MODEL_NOT_ALLOWED')
     }
-    return requested;
+    return requested
   }
 
-  if (allowedModels.has(defaultModel)) return defaultModel;
-  const first = Array.from(allowedModels)[0];
-  if (!first) throw new Error("未配置可用模型");
-  return first;
+  if (allowedModels.has(defaultModel)) return defaultModel
+  const first = Array.from(allowedModels)[0]
+  if (!first) throw createAIError('未配置可用模型，请检查 SILICONFLOW_ALLOWED_MODELS / OPENAI_ALLOWED_MODELS', 500, 'AI_MODEL_NOT_CONFIGURED')
+  return first
 }
 
 function normalizeErrorMessage(error: any): string {
@@ -133,7 +142,17 @@ function normalizeErrorMessage(error: any): string {
     error?.error?.message ||
     error?.response?.data?.error?.message ||
     error?.response?.data?.message;
-  return apiErrorMessage || error?.message || "未知错误";
+  return apiErrorMessage || error?.message || '未知错误';
+}
+
+function formatOpenAIError(error: any, fallbackMessage: string) {
+  return {
+    message: normalizeErrorMessage(error) || fallbackMessage,
+    status: error?.status ?? error?.response?.status ?? 500,
+    code: error?.code ?? 'AI_STREAM_ERROR',
+    provider: process.env.LLM_PROVIDER || 'openai',
+    model: error?.model,
+  }
 }
 
 function canRetryByModel(error: any): boolean {
@@ -190,7 +209,7 @@ const ANALYSIS_SYSTEM_PROMPT = `你是一个对话分析系统。请根据聊天
  */
 export async function* streamChat(
   messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
-  options?: { model?: string; temperature?: number; provider?: 'openai' | 'ollama' },
+  options?: { model?: string; temperature?: number; maxTokens?: number; provider?: 'openai' | 'ollama' },
 ): AsyncGenerator<string> {
   if (options?.provider === 'ollama' || process.env.LLM_PROVIDER === 'ollama') {
     for await (const chunk of streamChatWithOllama(messages, options)) {
@@ -212,6 +231,7 @@ export async function* streamChat(
         ],
         stream: true,
         temperature: options?.temperature ?? 0.7,
+        max_tokens: options?.maxTokens,
       });
 
       for await (const chunk of stream) {
@@ -224,14 +244,16 @@ export async function* streamChat(
     } catch (error: any) {
       lastError = error;
       if (!canRetryByModel(error)) {
-        throw new Error(`AI 流式请求失败: ${normalizeErrorMessage(error)}`);
+        throw createAIError(`AI 流式请求失败: ${normalizeErrorMessage(error)}`, error?.status ?? error?.response?.status ?? 500, error?.code ?? 'AI_STREAM_REQUEST_FAILED')
       }
     }
   }
 
-  throw new Error(
+  throw createAIError(
     `AI 流式请求失败（模型不可用）: ${normalizeErrorMessage(lastError)}`,
-  );
+    lastError?.status ?? lastError?.response?.status ?? 500,
+    'AI_MODEL_UNAVAILABLE',
+  )
 }
 
 /**

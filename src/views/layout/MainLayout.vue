@@ -3,37 +3,21 @@
     <el-header class="layout-header">
       <div class="header-left">
         <h1 class="logo">{{ preferenceStore.t('appName') }}</h1>
-        <el-menu :default-active="activeMenu" mode="horizontal" class="header-menu" @select="handleMenuSelect">
-          <el-menu-item index="/chat">
-            <el-icon><ChatLineRound /></el-icon>
-            <span>对话</span>
-          </el-menu-item>
-          <el-menu-item index="/history">
-            <span>历史</span>
-          </el-menu-item>
-        </el-menu>
+        <button class="chat-nav" type="button" @click="goChat">
+          <el-icon><ChatLineRound /></el-icon>
+          <span>对话</span>
+        </button>
       </div>
 
       <div class="header-right">
-        <el-dropdown @command="handleUserCommand">
-          <div class="user-info">
-            <el-avatar :size="32" :src="userStore.userInfo?.avatar" />
-            <span class="username">{{ userStore.userInfo?.username }}</span>
-            <span class="menu-label">{{ userMenuLabel }}</span>
-          </div>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="profile">
-                <el-icon><User /></el-icon>
-                个人中心
-              </el-dropdown-item>
-              <el-dropdown-item divided command="logout">
-                <el-icon><SwitchButton /></el-icon>
-                退出登录
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+        <div class="user-info">
+          <el-avatar :size="32" :src="userStore.userInfo?.avatar" />
+          <span class="username">{{ userStore.userInfo?.username }}</span>
+        </div>
+        <el-button class="logout-btn" text @click="handleLogout">
+          <el-icon><SwitchButton /></el-icon>
+          <span>退出</span>
+        </el-button>
       </div>
     </el-header>
 
@@ -42,21 +26,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUserStore, usePreferenceStore } from '@/store'
 import { api } from '@/service/api'
-import { ChatLineRound, User, SwitchButton } from '@element-plus/icons-vue'
+import { ChatLineRound, SwitchButton } from '@element-plus/icons-vue'
 
 const router = useRouter()
-const route = useRoute()
 const userStore = useUserStore()
 const preferenceStore = usePreferenceStore()
-const activeMenu = computed(() => route.path)
-const userMenuLabel = computed(() => (preferenceStore.language === 'en-US' ? 'Menu' : '菜单'))
 
-const handleMenuSelect = (index: string) => router.push(index)
-const handleUserCommand = (command: string) => command === 'logout' ? (userStore.logout(), router.push('/login')) : command === 'profile' ? router.push('/profile') : null
+const goChat = () => router.push('/chat')
+const handleLogout = () => {
+  userStore.logout()
+  router.push('/login')
+}
 
 const refreshUserProfile = async () => {
   if (!userStore.isLoggedIn) return
@@ -64,7 +48,13 @@ const refreshUserProfile = async () => {
     const result = await api.user.getProfile()
     const p = result.data
     if (!p) return
-    userStore.setUserInfo({ id: p.id || 0, username: p.username || '', email: p.email || '', avatar: p.avatar || '', role: (p.role as 'admin' | 'user') || 'user' })
+    userStore.setUserInfo({
+      id: p.id || 0,
+      username: p.username || '',
+      email: p.email || '',
+      avatar: p.avatar || '',
+      role: (p.role as 'admin' | 'user') || 'user',
+    })
   } catch {}
 }
 
@@ -72,12 +62,75 @@ onMounted(refreshUserProfile)
 </script>
 
 <style scoped lang="scss">
-.main-layout { height: 100vh; display: flex; flex-direction: column; background: #f3f4f6; }
-.layout-header { display: flex; justify-content: space-between; align-items: center; padding: 0 24px; background: #1f2937; }
-.header-left { display: flex; align-items: center; gap: 32px; }
-.logo { color: #fff; margin: 0; font-size: 22px; }
-.header-menu { background: transparent; border-bottom: none; }
-.layout-content { flex: 1; padding: 20px; overflow: auto; }
-.user-info { display: flex; align-items: center; gap: 12px; cursor: pointer; }
-.username, .menu-label { color: #fff; }
+.main-layout {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #faf7f2 0%, #f1ece4 100%);
+}
+.layout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(18px);
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.logo {
+  color: #262626;
+  margin: 0;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.chat-nav {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #e8e4dd;
+  background: #fff;
+  color: #262626;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chat-nav:hover {
+  background: #f7f3ed;
+}
+.layout-content {
+  flex: 1;
+  padding: 16px;
+  overflow: auto;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.username {
+  color: #262626;
+  font-weight: 600;
+}
+.logout-btn {
+  border-radius: 999px;
+  color: #8e8e8e;
+}
+.logout-btn:hover {
+  color: #262626;
+  background: #f4efe8;
+}
 </style>

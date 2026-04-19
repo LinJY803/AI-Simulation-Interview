@@ -16,6 +16,27 @@
           <h2>{{ pageTitle }}</h2>
           <p>{{ pageSubtitle }}</p>
         </div>
+        <div class="agent-toolbar">
+          <div class="agent-picker">
+            <span>Agent</span>
+            <el-select :model-value="activeAgentId" placeholder="选择 Agent" size="small" style="width: 220px" @update:model-value="setActiveAgent">
+              <el-option v-for="agent in agentOptions" :key="agent.id" :label="agent.name" :value="agent.id" />
+            </el-select>
+          </div>
+          <div v-if="activeAgent" class="agent-panel">
+            <div class="agent-panel__head">
+              <strong>{{ activeAgent.name }}</strong>
+              <span>Temp {{ activeAgent.temperature.toFixed(2) }} · Max {{ activeAgent.maxTokens }}</span>
+            </div>
+            <p class="agent-panel__desc">{{ activeAgent.description || '暂无描述' }}</p>
+            <div class="agent-panel__tags">
+              <span class="tag" :class="{ on: activeAgent.memoryEnabled }">Memory {{ activeAgent.memoryEnabled ? 'ON' : 'OFF' }}</span>
+              <span class="tag" :class="{ on: activeAgent.ragEnabled }">RAG {{ activeAgent.ragEnabled ? 'ON' : 'OFF' }}</span>
+              <span class="tag" :class="{ on: activeAgent.toolEnabled }">Tool {{ activeAgent.toolEnabled ? 'ON' : 'OFF' }}</span>
+              <span class="tag">KB {{ activeAgent.defaultKnowledgeBaseId || '-' }}</span>
+            </div>
+          </div>
+        </div>
       </header>
 
       <ChatMessageList
@@ -45,6 +66,7 @@
         @sendText="handleSendMessage"
         @startRecord="startRecording"
         @stopRecord="stopRecording"
+        @stopReply="stopAssistantReply"
       />
     </section>
   </div>
@@ -83,11 +105,16 @@ const {
   voiceModeLabel,
   recordingHint,
   holdHint,
+  agentOptions,
+  activeAgentId,
+  activeAgent,
+  setActiveAgent,
   selectConversation,
   createConversation,
   handleSendMessage,
   startRecording,
   stopRecording,
+  stopAssistantReply,
 } = useChatPage()
 </script>
 
@@ -101,12 +128,8 @@ const {
   --ai-bubble: #ffffff;
   --user-bubble: #89a99b;
   --input-bg: #fafafa;
-  --page-shadow: 0 18px 44px rgba(0, 0, 0, 0.09);
-  --feed-divider: rgba(0, 0, 0, 0.06);
-  --surface-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
-  --section-gap: 12px;
-  --header-height: 56px;
-  --footer-height: 82px;
+  --page-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+  --feed-divider: rgba(0, 0, 0, 0.04);
 
   height: calc(100vh - 120px);
   display: flex;
@@ -122,8 +145,7 @@ const {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(90deg, transparent, var(--feed-divider), transparent);
-  opacity: 0.7;
+  background: linear-gradient(180deg, rgba(255,255,255,0.12), transparent 32%, rgba(0,0,0,0.02));
 }
 
 .chat-main {
@@ -137,15 +159,15 @@ const {
 }
 
 .chat-header {
-  min-height: var(--header-height);
-  background: rgba(255, 255, 255, 0.88);
-  padding: 11px 16px;
+  min-height: 60px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 12px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--border-color);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .chat-header h2 {
@@ -153,7 +175,6 @@ const {
   font-size: 15px;
   font-weight: 600;
   color: var(--text-main);
-  letter-spacing: -0.01em;
 }
 
 .chat-header p {
@@ -162,6 +183,74 @@ const {
   color: var(--text-muted);
 }
 
+.agent-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.agent-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.agent-panel {
+  min-width: 300px;
+  max-width: 420px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.agent-panel__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.agent-panel__head strong {
+  color: var(--text-main);
+  font-size: 13px;
+}
+
+.agent-panel__desc {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agent-panel__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.tag.on {
+  color: #4f7666;
+  border-color: rgba(137, 169, 155, 0.45);
+  background: rgba(137, 169, 155, 0.15);
+}
 html[data-theme='dark'] .chat-page {
   --bg-color: #111418;
   --white: #1a1f24;
@@ -173,7 +262,6 @@ html[data-theme='dark'] .chat-page {
   --input-bg: #14181d;
   --page-shadow: 0 22px 54px rgba(0, 0, 0, 0.38);
   --feed-divider: rgba(255, 255, 255, 0.05);
-  --surface-shadow: 0 2px 5px rgba(0, 0, 0, 0.18);
   background: #0c0f12;
 }
 

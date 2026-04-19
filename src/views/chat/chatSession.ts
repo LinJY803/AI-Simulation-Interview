@@ -59,6 +59,7 @@ export function createConversation(params: {
   id: string
   title: string
   updatedAt: number
+  agentId?: string
   summary?: string
   summaryUpdatedAt?: number
   messages?: ChatMessage[]
@@ -67,6 +68,7 @@ export function createConversation(params: {
     id: params.id,
     title: params.title,
     updatedAt: params.updatedAt,
+    agentId: params.agentId,
     summary: params.summary,
     summaryUpdatedAt: params.summaryUpdatedAt,
     messages: params.messages ?? [],

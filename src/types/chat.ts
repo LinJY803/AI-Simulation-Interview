@@ -67,6 +67,7 @@ export interface ChatConversation {
   id: string
   title: string
   updatedAt: number
+  agentId?: string
   summary?: string
   summaryUpdatedAt?: number
   messages: ChatMessage[]

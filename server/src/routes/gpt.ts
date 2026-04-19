@@ -5,14 +5,63 @@
 import { Router, type Request, type Response } from 'express'
 import { interviewStorage } from '../services/storage.js'
 import { authMiddleware } from './auth.js'
-import { streamChat, analyzeInterview, speechToText, textToSpeech } from '../services/openai.js'
-import { buildRetrievalContext, inferMemoryRulesWithModel, applyMemoryRulesToUser } from '../services/rag.js'
-import { memoryStorage } from '../services/memoryStore.js'
+import { analyzeInterview, speechToText, textToSpeech } from '../services/openai.js'
+import { AgentOrchestrator } from '../services/agentOrchestrator.js'
 import { agentStorage } from '../services/agents.js'
 import { knowledgeBaseStore } from '../services/knowledgeBase.js'
 
 const router = Router()
 router.use(authMiddleware)
+
+router.get('/agents', (req: Request, res: Response) => {
+  const currentUserId = (req as any).user?.userId
+  const list = agentStorage.list(currentUserId)
+  res.json({ code: 200, success: true, message: '请求成功', data: list })
+})
+
+router.post('/agents', (req: Request, res: Response) => {
+  const currentUserId = (req as any).user?.userId
+  const {
+    id,
+    name,
+    description,
+    systemPrompt,
+    temperature,
+    maxTokens,
+    memoryEnabled,
+    ragEnabled,
+    toolEnabled,
+    defaultKnowledgeBaseId,
+  } = req.body || {}
+
+  if (!name || !systemPrompt) {
+    return res.status(400).json({ code: 400, success: false, message: 'name 和 systemPrompt 为必填项' })
+  }
+
+  const saved = agentStorage.upsert({
+    id,
+    userId: currentUserId,
+    name,
+    description,
+    systemPrompt,
+    temperature: typeof temperature === 'number' ? temperature : 0.7,
+    maxTokens: typeof maxTokens === 'number' ? maxTokens : 1200,
+    memoryEnabled: typeof memoryEnabled === 'boolean' ? memoryEnabled : true,
+    ragEnabled: typeof ragEnabled === 'boolean' ? ragEnabled : true,
+    toolEnabled: typeof toolEnabled === 'boolean' ? toolEnabled : false,
+    defaultKnowledgeBaseId,
+  })
+
+  return res.json({ code: 200, success: true, message: '保存成功', data: saved })
+})
+
+router.delete('/agents/:id', (req: Request, res: Response) => {
+  const currentUserId = (req as any).user?.userId
+  const item = agentStorage.list(currentUserId).find((agent) => agent.id === req.params.id)
+  if (!item) return res.status(404).json({ code: 404, success: false, message: 'Agent 不存在' })
+  agentStorage.remove(req.params.id)
+  return res.json({ code: 200, success: true, message: '删除成功', data: { deleted: true } })
+})
 
 router.get('/analysis/:id', async (req: Request, res: Response) => {
   const { id } = req.params
@@ -30,41 +79,23 @@ router.get('/analysis/:id', async (req: Request, res: Response) => {
 
 router.post('/stream', async (req: Request, res: Response) => {
   const { messages, model, temperature, provider, userId, agentId, knowledgeBaseId } = req.body
-  const lastUser = [...(messages || [])].reverse().find((m: any) => m.role === 'user')?.content || ''
-  const retrievalHits = buildRetrievalContext(lastUser, 5)
-  const agent = agentId ? agentStorage.list(userId).find((item) => item.id === agentId) : undefined
-  const memoryHits = userId ? memoryStorage.list(userId).slice(0, 10) : []
-  const kb = knowledgeBaseId ? knowledgeBaseStore.knowledgeBases.find((item) => item.id === knowledgeBaseId) : undefined
+  const currentUserId = userId || (req as any).user?.userId
+  const allAgents = agentStorage.list(currentUserId)
+  const agent = agentId ? allAgents.find((item) => item.id === agentId) : allAgents[0]
 
-  const citations = retrievalHits.map((hit) => ({
-    id: hit.id,
-    chunkId: hit.metadata?.chunkId || hit.id,
-    chunkIndex: hit.metadata?.chunkIndex ?? hit.metadata?.index ?? 0,
-    documentId: hit.metadata?.documentId,
-    documentTitle: hit.metadata?.documentTitle || hit.metadata?.sourceLabel || '引用来源',
-    knowledgeBaseId: hit.metadata?.knowledgeBaseId || kb?.id,
-    knowledgeBaseName: hit.metadata?.knowledgeBaseName || kb?.name,
-    content: hit.text,
-    score: hit.score,
-    weight: hit.metadata?.weight ?? 1,
-  }))
+  const selectedKnowledgeBaseId = knowledgeBaseId || agent?.defaultKnowledgeBaseId
+  const kb = selectedKnowledgeBaseId ? knowledgeBaseStore.knowledgeBases.find((item) => item.id === selectedKnowledgeBaseId) : undefined
 
-  const enhancedMessages = [
-    {
-      role: 'system' as const,
-      content: [
-        agent?.systemPrompt || '你是一个智能对话助手。',
-        retrievalHits.length
-          ? `检索上下文：\n${retrievalHits.map((hit) => `- (${hit.score.toFixed(3)}) ${hit.text}`).join('\n')}`
-          : '检索上下文：无',
-        memoryHits.length
-          ? `长期记忆：\n${memoryHits.map((m) => `- [${m.type}] ${m.key}: ${m.value}`).join('\n')}`
-          : '长期记忆：无',
-        agent ? `Agent 配置：temperature=${agent.temperature}, maxTokens=${agent.maxTokens}, memory=${agent.memoryEnabled}, rag=${agent.ragEnabled}, tool=${agent.toolEnabled}` : 'Agent 配置：默认',
-      ].join('\n\n'),
-    },
-    ...(messages || []),
-  ]
+  const orchestrator = new AgentOrchestrator({
+    messages: messages || [],
+    userId: currentUserId,
+    agent,
+    model,
+    temperature,
+    provider: provider === 'ollama' ? 'ollama' : 'openai',
+    knowledgeBaseId: selectedKnowledgeBaseId,
+    knowledgeBaseName: kb?.name,
+  })
 
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
@@ -72,25 +103,34 @@ router.post('/stream', async (req: Request, res: Response) => {
   res.setHeader('X-Accel-Buffering', 'no')
   res.flushHeaders()
 
-  const assistantMessage = {
-    id: `msg_${Date.now()}_assistant`,
-    role: 'assistant' as const,
-    content: '',
-    metadata: { citations },
-  }
-
   try {
-    for await (const chunk of streamChat(enhancedMessages, { model, temperature, provider: provider === 'ollama' ? 'ollama' : 'openai' })) {
-      res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`)
+    for await (const event of orchestrator.stream()) {
+      if (event.type === 'chunk') {
+        res.write(`data: ${JSON.stringify({ content: event.content })}\n\n`)
+        continue
+      }
+      res.write(`data: ${JSON.stringify({ assistantMessage: event.assistantMessage })}\n\n`)
     }
-    if (userId) {
-      const rules = await inferMemoryRulesWithModel(messages || [])
-      applyMemoryRulesToUser(userId, rules)
-    }
-    res.write(`data: ${JSON.stringify({ assistantMessage })}\n\n`)
     res.write('data: [DONE]\n\n')
   } catch (error: any) {
-    res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`)
+    const detail = {
+      message: error?.message || 'AI 服务暂不可用',
+      code: error?.code || 'AI_STREAM_ERROR',
+      status: error?.status || error?.response?.status || 500,
+      provider: provider === 'ollama' ? 'ollama' : 'openai',
+      model,
+    }
+    console.error('[gpt/stream] 请求失败:', detail)
+    if (!res.headersSent) {
+      res.status(200)
+      res.setHeader('Content-Type', 'text/event-stream')
+      res.setHeader('Cache-Control', 'no-cache')
+      res.setHeader('Connection', 'keep-alive')
+      res.setHeader('X-Accel-Buffering', 'no')
+      res.flushHeaders()
+    }
+    res.write(`data: ${JSON.stringify({ error: detail })}\n\n`)
+    res.write('data: [DONE]\n\n')
   } finally {
     res.end()
   }

@@ -64,8 +64,26 @@ export interface StreamCallbacks {
   onChunk: (text: string) => void;
   /** 流式传输完成时调用，参数为完整文本 */
   onDone: (fullText: string) => void;
+  /** 接收服务端附带元信息（如引用） */
+  onMeta?: (meta: any) => void;
   /** 出错时调用 */
   onError: (error: Error) => void;
+}
+
+export interface AgentConfig {
+  id: string;
+  userId?: number | string;
+  name: string;
+  description?: string;
+  systemPrompt: string;
+  temperature: number;
+  maxTokens: number;
+  memoryEnabled: boolean;
+  ragEnabled: boolean;
+  toolEnabled: boolean;
+  defaultKnowledgeBaseId?: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 /** WebSocket 回调配置 */
@@ -698,9 +716,8 @@ export const api = {
     streamChatSSE: async (
       messages: GptChatMessage[],
       callbacks: StreamCallbacks,
-      options?: { model?: string; temperature?: number },
-    ): Promise<void> => {
-      // ── 仅在显式开启 VITE_GPT_MOCK=true 时使用模拟流 ──
+      options?: { model?: string; temperature?: number; signal?: AbortSignal; userId?: number | string; agentId?: string; knowledgeBaseId?: string },
+    ): Promise<void> => {      // ── 仅在显式开启 VITE_GPT_MOCK=true 时使用模拟流 ──
       if (import.meta.env.VITE_GPT_MOCK === "true") {
         const fullText = generateMockAIResponse(
           messages[messages.length - 1]?.content,
@@ -734,6 +751,7 @@ export const api = {
                 stream: true,
                 temperature: options?.temperature ?? 0.7,
               }),
+              signal: options?.signal,
             })
           : await fetch(`${API_BASE_URL}/gpt/stream`, {
               method: "POST",
@@ -745,7 +763,11 @@ export const api = {
                 messages,
                 model: options?.model,
                 temperature: options?.temperature,
+                userId: options?.userId,
+                agentId: options?.agentId,
+                knowledgeBaseId: options?.knowledgeBaseId,
               }),
+              signal: options?.signal,
             });
 
         if (!response.ok) {
@@ -818,6 +840,10 @@ export const api = {
               // 兼容 OpenAI 标准格式和后端简化格式
               const delta =
                 parsed.choices?.[0]?.delta?.content ?? parsed.content;
+
+              if (parsed.assistantMessage) {
+                callbacks.onMeta?.(parsed.assistantMessage);
+              }
 
               if (delta !== undefined && delta !== null) {
                 fullText += delta;
@@ -1090,6 +1116,13 @@ export const api = {
      * @param messages - 面试过程中的所有对话消息
      * @returns InterviewAnalysis 结构化评分数据
      */
+    listAgents: (): Promise<ApiResponse<AgentConfig[]>> => request.get('/gpt/agents'),
+
+    upsertAgent: (payload: Partial<AgentConfig> & { name: string; systemPrompt: string }): Promise<ApiResponse<AgentConfig>> =>
+      request.post('/gpt/agents', payload),
+
+    deleteAgent: (id: string): Promise<ApiResponse<{ deleted: boolean }>> => request.delete(`/gpt/agents/${id}`),
+
     analyzeDirectly: async (
       messages: InterviewMessage[],
     ): Promise<InterviewAnalysis> => {
