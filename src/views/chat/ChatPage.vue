@@ -1,13 +1,15 @@
 <template>
   <div class="chat-page">
     <ConversationList
-      :items="conversationItems"
+      :items="visibleConversationItems"
+      :total-count="conversationItems.length"
       :active-id="activeConversationId"
       :title="sidebarTitle"
       :create-label="createLabel"
       :search-placeholder="searchPlaceholder"
       @select="selectConversation"
       @create="createConversation"
+      @load-more="loadMoreConversations"
     />
 
     <section class="chat-main">
@@ -21,6 +23,12 @@
             <span>Agent</span>
             <el-select :model-value="activeAgentId" placeholder="选择 Agent" size="small" style="width: 220px" @update:model-value="setActiveAgent">
               <el-option v-for="agent in agentOptions" :key="agent.id" :label="agent.name" :value="agent.id" />
+            </el-select>
+          </div>
+          <div class="agent-picker">
+            <span>RAG</span>
+            <el-select :model-value="ragStrategy" placeholder="检索策略" size="small" style="width: 170px" @update:model-value="setRagStrategy($event)">
+              <el-option v-for="option in ragStrategyOptions" :key="option.id" :label="option.label" :value="option.id" />
             </el-select>
           </div>
           <div v-if="activeAgent" class="agent-panel">
@@ -39,16 +47,30 @@
         </div>
       </header>
 
-      <ChatMessageList
-        :messages="activeMessages"
-        :streaming-message-id="activeStreamingMessageId"
-        :empty-text="emptyText"
-        :assistant-label="assistantLabel"
-        :user-label="userLabel"
-        :voice-label="voiceLabel"
-        :assistant-avatar="assistantAvatar"
-        :user-avatar="userAvatar"
-      />
+      <div class="chat-content-wrap">
+        <ChatMessageList
+          :messages="activeMessages"
+          :has-more="hasMoreMessages"
+          :streaming-message-id="activeStreamingMessageId"
+          :empty-text="emptyText"
+          :assistant-label="assistantLabel"
+          :user-label="userLabel"
+          :voice-label="voiceLabel"
+          :assistant-avatar="assistantAvatar"
+          :user-avatar="userAvatar"
+          @load-more="loadMoreMessages"
+        />
+
+        <aside class="tool-log-panel">
+          <div class="tool-log-panel__head">
+            <strong>工具调用日志</strong>
+            <span>{{ toolCallLogs.length }} 条</span>
+          </div>
+          <div class="tool-log-list">
+            <ToolCallTimeline :items="toolCallLogs" empty-text="暂无工具调用" />
+          </div>
+        </aside>
+      </div>
 
       <ChatInputBar
         v-model:text-value="inputText"
@@ -76,6 +98,7 @@
 import ConversationList from '@/components/chat/ConversationList.vue'
 import ChatInputBar from '@/components/chat/ChatInputBar.vue'
 import ChatMessageList from '@/components/chat/ChatMessageList.vue'
+import ToolCallTimeline from '@/components/chat/ToolCallTimeline.vue'
 import { useChatPage } from './useChatPage'
 
 const {
@@ -87,6 +110,8 @@ const {
   conversationItems,
   activeConversationId,
   activeMessages,
+  visibleConversationItems,
+  hasMoreMessages,
   activeStreamingMessageId,
   isActiveConversationGenerating,
   pageTitle,
@@ -108,9 +133,15 @@ const {
   agentOptions,
   activeAgentId,
   activeAgent,
+  ragStrategy,
+  setRagStrategy,
+  ragStrategyOptions,
+  toolCallLogs,
   setActiveAgent,
   selectConversation,
   createConversation,
+  loadMoreConversations,
+  loadMoreMessages,
   handleSendMessage,
   startRecording,
   stopRecording,
@@ -156,6 +187,40 @@ const {
   background: var(--bg-color);
   position: relative;
   z-index: 1;
+}
+
+.chat-content-wrap {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 12px;
+  padding: 10px 12px 0;
+}
+
+.tool-log-panel {
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.75);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tool-log-panel__head {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.tool-log-list {
+  padding: 10px;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .chat-header {

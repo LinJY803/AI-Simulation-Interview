@@ -53,6 +53,7 @@ declare module 'vue' {
     PassThrough: typeof import('./src/components/PassThrough.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    ToolCallTimeline: typeof import('./src/components/chat/ToolCallTimeline.vue')['default']
   }
   export interface GlobalDirectives {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

@@ -5,6 +5,7 @@
  * POST   /api/interview/start          — 开始新面试
  * POST   /api/interview/:id/message     — 发送消息（获取 AI 回复）
  * POST   /api/interview/:id/end         — 结束面试（生成分析报告）
+ * POST   /api/interview/:id/cancel      — 取消面试（路由离开/主动取消）
  * GET    /api/interview/history         — 面试历史列表（分页）
  * GET    /api/interview/:id             — 面试详情
  * DELETE /api/interview/:id             — 删除面试记录
@@ -18,6 +19,14 @@ import {
 } from "../services/storage.js";
 import { authMiddleware } from "./auth.js";
 import { streamChat, analyzeInterview } from "../services/openai.js";
+
+export async function collectStreamText(stream: AsyncIterable<string>): Promise<string> {
+  let text = "";
+  for await (const chunk of stream) {
+    text += chunk;
+  }
+  return text;
+}
 
 const router = Router();
 
@@ -81,7 +90,8 @@ router.post("/:id/message", async (req: Request, res: Response) => {
   }
 
   if (record.status !== "ongoing") {
-    res.status(400).json({ code: 400, success: false, message: "面试已结束" });
+    const endedMessage = record.status === "canceled" ? "面试已取消" : "面试已结束";
+    res.status(400).json({ code: 400, success: false, message: endedMessage });
     return;
   }
 
@@ -103,11 +113,7 @@ router.post("/:id/message", async (req: Request, res: Response) => {
       content: m.content,
     }));
 
-    let aiContent = "";
-    // 用 for-await 收集流式输出为完整文本
-    for await (const chunk of streamChat(chatMessages)) {
-      aiContent += chunk;
-    }
+    const aiContent = await collectStreamText(streamChat(chatMessages));
 
     const aiMsg: InterviewMessage = {
       id: `msg_${Date.now() + 1}`,
@@ -137,6 +143,25 @@ router.post("/:id/message", async (req: Request, res: Response) => {
   }
 });
 
+const FALLBACK_ANALYSIS = {
+  technicalScore: 3.0,
+  communicationScore: 3.0,
+  problemSolvingScore: 3.0,
+  overallScore: 3.0,
+  strengths: ["分析报告生成失败，使用默认评分"],
+  weaknesses: [],
+  suggestions: [],
+};
+
+async function buildInterviewAnalysis(record: InterviewRecord) {
+  try {
+    return await analyzeInterview(record.messages);
+  } catch (error: any) {
+    console.error("[Interview] 分析报告生成失败:", error.message);
+    return FALLBACK_ANALYSIS;
+  }
+}
+
 // ==================== POST /api/interview/:id/end ====================
 router.post("/:id/end", async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -149,27 +174,44 @@ router.post("/:id/end", async (req: Request, res: Response) => {
     return;
   }
 
-  if (record.status !== "ongoing") {
-    res.status(400).json({ code: 400, success: false, message: "面试已结束" });
+  // 自动结束幂等：如果已完成，直接返回已存在的分析，避免重复写入 completed 污染统计
+  if (record.status === "completed") {
+    if (record.analysis) {
+      res.json({
+        code: 200,
+        success: true,
+        message: "面试已结束（幂等返回）",
+        data: record.analysis,
+      });
+      return;
+    }
+
+    const analysis = await buildInterviewAnalysis(record);
+    interviewStorage.update(id, {
+      score: analysis.overallScore,
+      analysis,
+    });
+
+    res.json({
+      code: 200,
+      success: true,
+      message: "面试已结束（幂等补全分析）",
+      data: analysis,
+    });
     return;
   }
 
-  // 生成 AI 分析报告
-  let analysis;
-  try {
-    analysis = await analyzeInterview(record.messages);
-  } catch (error: any) {
-    console.error("[Interview] 分析报告生成失败:", error.message);
-    analysis = {
-      technicalScore: 3.0,
-      communicationScore: 3.0,
-      problemSolvingScore: 3.0,
-      overallScore: 3.0,
-      strengths: ["分析报告生成失败，使用默认评分"],
-      weaknesses: [],
-      suggestions: [],
-    };
+  if (record.status === "canceled") {
+    res.status(400).json({ code: 400, success: false, message: "面试已取消，无法结束" });
+    return;
   }
+
+  if (record.status !== "ongoing") {
+    res.status(400).json({ code: 400, success: false, message: "面试状态异常" });
+    return;
+  }
+
+  const analysis = await buildInterviewAnalysis(record);
 
   const now = Date.now();
   interviewStorage.update(id, {
@@ -185,6 +227,48 @@ router.post("/:id/end", async (req: Request, res: Response) => {
     success: true,
     message: "面试已结束",
     data: analysis,
+  });
+});
+
+// ==================== POST /api/interview/:id/cancel ====================
+router.post("/:id/cancel", (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const record = interviewStorage.findById(id);
+  if (!record) {
+    res
+      .status(404)
+      .json({ code: 404, success: false, message: "面试记录不存在" });
+    return;
+  }
+
+  if (record.status === "completed") {
+    res.status(400).json({ code: 400, success: false, message: "面试已完成，无法取消" });
+    return;
+  }
+
+  if (record.status === "canceled") {
+    res.json({
+      code: 200,
+      success: true,
+      message: "面试已取消（幂等返回）",
+      data: { status: "canceled" },
+    });
+    return;
+  }
+
+  const now = Date.now();
+  interviewStorage.update(id, {
+    status: "canceled",
+    endTime: now,
+    durationMs: now - record.startTime,
+  });
+
+  res.json({
+    code: 200,
+    success: true,
+    message: "面试已取消",
+    data: { status: "canceled" },
   });
 });
 
@@ -316,9 +400,10 @@ router.get("/:id/export", (req: Request, res: Response) => {
 // ==================== GET /api/interview/:id ====================
 router.get("/:id", (req: Request, res: Response) => {
   const { id } = req.params;
+  const userId = (req as any).user.userId;
   const record = interviewStorage.findById(id);
 
-  if (!record) {
+  if (!record || record.userId !== userId) {
     res
       .status(404)
       .json({ code: 404, success: false, message: "面试记录不存在" });

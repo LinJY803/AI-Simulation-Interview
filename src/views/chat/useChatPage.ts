@@ -8,7 +8,6 @@ import {
   CHAT_CONVERSATIONS_STORAGE_KEY,
   CHAT_CONTEXT_LIMIT,
   DEFAULT_AI_AVATAR,
-  DEFAULT_SYSTEM_PROMPT,
   DEFAULT_WELCOME_MESSAGE,
   buildConversationSummary,
   createAssistantMessage,
@@ -17,6 +16,8 @@ import {
   getRecentMessages,
   needsSummary,
 } from './chatSession'
+import { createAgentOrchestrator, type RagStrategy } from './agentOrchestrator'
+import type { ToolCallRecord } from './toolProtocol'
 
 export function useChatPage() {
   const userStore = useUserStore()
@@ -30,8 +31,11 @@ export function useChatPage() {
   const inputText = ref('')
   const inputMode = ref<'text' | 'voice'>('text')
   const isRecording = ref(false)
+  const ragStrategy = ref<RagStrategy>('hybrid')
   const conversationItems = ref<ChatConversation[]>([])
   const activeConversationId = ref<string | null>(null)
+  const conversationVisibleCount = ref(24)
+  const messageVisibleCountMap = ref<Record<string, number>>({})
   const generatingConversationId = ref<string | null>(null)
   const activeReplyMessageId = ref<string | null>(null)
 
@@ -41,6 +45,10 @@ export function useChatPage() {
   let streamFinished = false
   let activeTypingTarget = { conversationId: '', messageId: '' }
   let streamAbortController: AbortController | null = null
+  const MAX_STREAM_RETRY = 1
+
+  const currentUserScopedId = computed(() => String(userStore.userInfo?.id ?? 'guest'))
+  const getConversationStorageKey = () => `${CHAT_CONVERSATIONS_STORAGE_KEY}:${currentUserScopedId.value}`
 
   const activeConversation = computed(() =>
     conversationItems.value.find(c => c.id === activeConversationId.value) ?? null,
@@ -57,17 +65,40 @@ export function useChatPage() {
   const knowledgeBaseId = computed(() =>
     activeConversationAgent.value?.defaultKnowledgeBaseId || knowledgeBaseStore.knowledgeBases.find((item) => item.status === 'active')?.id || null,
   )
-  const activeMessages = computed(() => activeConversation.value?.messages ?? [])
-  const activeRecentMessages = computed(() => getRecentMessages(activeMessages.value, CHAT_CONTEXT_LIMIT))
+  const activeMessages = computed(() => {
+    const conv = activeConversation.value
+    if (!conv) return [] as ChatMessage[]
+    const visibleCount = messageVisibleCountMap.value[conv.id] ?? 60
+    return conv.messages.slice(Math.max(0, conv.messages.length - visibleCount))
+  })
+  const activeRecentMessages = computed(() => getRecentMessages(activeConversation.value?.messages ?? [], CHAT_CONTEXT_LIMIT))
+  const visibleConversationItems = computed(() => conversationItems.value.slice(0, conversationVisibleCount.value))
+  const orchestrator = createAgentOrchestrator({
+    memoryStore,
+    knowledgeBaseStore,
+    ragStrategy: ragStrategy.value,
+  })
+  const toolLogsVersion = ref(0)
+  const refreshToolLogs = () => { toolLogsVersion.value += 1 }
+  const toolCallLogs = computed(() => {
+    toolLogsVersion.value
+    return orchestrator.getToolCallLogs()
+  })
   const isActiveConversationGenerating = computed(
     () => generatingConversationId.value !== null && generatingConversationId.value === activeConversationId.value,
   )
   const activeStreamingMessageId = computed(() =>
     generatingConversationId.value === activeConversationId.value ? activeReplyMessageId.value : null,
   )
+  const hasMoreMessages = computed(() => {
+    const conv = activeConversation.value
+    if (!conv) return false
+    const visibleCount = messageVisibleCountMap.value[conv.id] ?? 60
+    return conv.messages.length > visibleCount
+  })
 
   const saveConversations = () => {
-    localStorage.setItem(CHAT_CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversationItems.value))
+    localStorage.setItem(getConversationStorageKey(), JSON.stringify(conversationItems.value))
   }
 
   const updateConversationMeta = (conv: ChatConversation) => {
@@ -159,39 +190,43 @@ export function useChatPage() {
   }
 
   const syncMemoryFromConversation = (conv: ChatConversation) => {
-    const recent = [...conv.messages].slice(-6)
-    const lastUser = [...recent].reverse().find(m => m.role === 'user')
-    const lastAssistant = [...recent].reverse().find(m => m.role === 'assistant')
+    try {
+      const recent = [...conv.messages].slice(-6)
+      const lastUser = [...recent].reverse().find(m => m.role === 'user')
+      const lastAssistant = [...recent].reverse().find(m => m.role === 'assistant')
 
-    if (lastUser?.content) {
-      memoryStore.addFact(`conversation_${conv.id}_last_user`, lastUser.content, 0.72, 'user')
-      memoryStore.addSummary(`conversation_${conv.id}_topic`, lastUser.content.slice(0, 80), 0.48, 'derived')
-    }
-    if (lastAssistant?.content) {
-      memoryStore.addFact(`conversation_${conv.id}_last_assistant`, lastAssistant.content, 0.46, 'assistant')
-    }
-
-    const candidates = extractMemoryCandidates(conv)
-    for (const item of candidates) {
-      const similar = memoryStore.findSimilar(item.type, item.value)
-      if (similar) {
-        memoryStore.update(similar.id, {
-          value: item.value,
-          weight: Math.max(similar.weight, item.weight),
-          source: item.source,
-          sourceId: item.sourceId,
-        })
-        continue
+      if (lastUser?.content) {
+        memoryStore.addFact(`conversation_${conv.id}_last_user`, lastUser.content, 0.72, 'user')
+        memoryStore.addSummary(`conversation_${conv.id}_topic`, lastUser.content.slice(0, 80), 0.48, 'derived')
       }
-      if (item.type === 'profile') memoryStore.addProfile(item.key, item.value, item.weight, item.source, item.sourceId)
-      if (item.type === 'preference') memoryStore.addPreference(item.key, item.value, item.weight, item.source, item.sourceId)
-      if (item.type === 'fact') memoryStore.addFact(item.key, item.value, item.weight, item.source, item.sourceId)
-      if (item.type === 'task') memoryStore.addTask(item.key, item.value, item.weight, item.source, item.sourceId)
-      if (item.type === 'summary') memoryStore.addSummary(item.key, item.value, item.weight, item.source, item.sourceId)
-    }
+      if (lastAssistant?.content) {
+        memoryStore.addFact(`conversation_${conv.id}_last_assistant`, lastAssistant.content, 0.46, 'assistant')
+      }
 
-    if (conv.summary) {
-      memoryStore.addSummary(`conversation_${conv.id}_summary`, conv.summary, 0.55, 'derived')
+      const candidates = extractMemoryCandidates(conv)
+      for (const item of candidates) {
+        const similar = memoryStore.findSimilar(item.type, item.value)
+        if (similar) {
+          memoryStore.update(similar.id, {
+            value: item.value,
+            weight: Math.max(similar.weight, item.weight),
+            source: item.source,
+            sourceId: item.sourceId,
+          })
+          continue
+        }
+        if (item.type === 'profile') memoryStore.addProfile(item.key, item.value, item.weight, item.source, item.sourceId)
+        if (item.type === 'preference') memoryStore.addPreference(item.key, item.value, item.weight, item.source, item.sourceId)
+        if (item.type === 'fact') memoryStore.addFact(item.key, item.value, item.weight, item.source, item.sourceId)
+        if (item.type === 'task') memoryStore.addTask(item.key, item.value, item.weight, item.source, item.sourceId)
+        if (item.type === 'summary') memoryStore.addSummary(item.key, item.value, item.weight, item.source, item.sourceId)
+      }
+
+      if (conv.summary) {
+        memoryStore.addSummary(`conversation_${conv.id}_summary`, conv.summary, 0.55, 'derived')
+      }
+    } catch (error: any) {
+      console.warn('[chat] memory sync failed:', error?.message || error)
     }
   }
 
@@ -262,7 +297,7 @@ export function useChatPage() {
 
   const loadConversations = () => {
     try {
-      const raw = localStorage.getItem(CHAT_CONVERSATIONS_STORAGE_KEY)
+      const raw = localStorage.getItem(getConversationStorageKey())
       if (!raw) {
         const now = Date.now()
         const first = createConversation({
@@ -283,6 +318,8 @@ export function useChatPage() {
         })
         conversationItems.value = [first]
         activeConversationId.value = first.id
+        conversationVisibleCount.value = 24
+        messageVisibleCountMap.value = { [first.id]: 60 }
         saveConversations()
         return
       }
@@ -294,23 +331,37 @@ export function useChatPage() {
         const first = createConversation({ id: `conv-${now}`, title: '新会话 1', updatedAt: now })
         conversationItems.value = [first]
         activeConversationId.value = first.id
+        conversationVisibleCount.value = 24
+        messageVisibleCountMap.value = { [first.id]: 60 }
         saveConversations()
         return
       }
 
       activeConversationId.value = conversationItems.value[0]?.id ?? null
+      conversationVisibleCount.value = Math.min(24, conversationItems.value.length)
+      if (activeConversationId.value && !messageVisibleCountMap.value[activeConversationId.value]) {
+        messageVisibleCountMap.value = {
+          ...messageVisibleCountMap.value,
+          [activeConversationId.value]: 60,
+        }
+      }
     } catch {
       conversationItems.value = []
       const now = Date.now()
       const first = createConversation({ id: `conv-${now}`, title: '新会话 1', updatedAt: now })
       conversationItems.value = [first]
       activeConversationId.value = first.id
+      conversationVisibleCount.value = 24
+      messageVisibleCountMap.value = { [first.id]: 60 }
       saveConversations()
     }
   }
 
   const selectConversation = (id: string) => {
     activeConversationId.value = id
+    if (!messageVisibleCountMap.value[id]) {
+      messageVisibleCountMap.value = { ...messageVisibleCountMap.value, [id]: 60 }
+    }
     const conv = conversationItems.value.find((item) => item.id === id)
     if (conv?.agentId) {
       agentStore.setActiveAgent(conv.agentId)
@@ -348,6 +399,20 @@ export function useChatPage() {
     createNewConversation(focus, false)
   }
 
+  const loadMoreConversations = () => {
+    conversationVisibleCount.value = Math.min(conversationItems.value.length, conversationVisibleCount.value + 24)
+  }
+
+  const loadMoreMessages = () => {
+    const conv = activeConversation.value
+    if (!conv) return
+    const current = messageVisibleCountMap.value[conv.id] ?? 60
+    messageVisibleCountMap.value = {
+      ...messageVisibleCountMap.value,
+      [conv.id]: Math.min(conv.messages.length, current + 60),
+    }
+  }
+
   const ensureConversation = () => {
     if (activeConversation.value) return activeConversation.value
     createNewConversation(true, false)
@@ -374,7 +439,15 @@ export function useChatPage() {
     inputText.value = ''
     updateConversationMeta(conv)
     await nextTick()
-    await sendAssistantReply(conv.id)
+
+    try {
+      await sendAssistantReply(conv.id)
+    } catch (error: any) {
+      ElMessage.error(error?.message || '消息发送失败，请重试')
+      generatingConversationId.value = null
+      activeReplyMessageId.value = null
+      streamAbortController = null
+    }
   }
 
   const sendAssistantReply = async (conversationId: string) => {
@@ -385,7 +458,6 @@ export function useChatPage() {
     pendingAssistantText = ''
     streamFinished = false
     activeTypingTarget = { conversationId, messageId: `msg-${Date.now()}-assistant` }
-    streamAbortController = new AbortController()
 
     const assistantNow = Date.now()
     const assistantMsg: ChatMessage = createAssistantMessage({
@@ -401,95 +473,107 @@ export function useChatPage() {
     activeReplyMessageId.value = assistantMsg.id
     saveConversations()
 
-    const memoryContext = (activeConversationAgent.value?.memoryEnabled ?? true)
-      ? memoryStore
-          .list({ minWeight: 0.55 })
-          .slice(0, 8)
-          .map((item) => `[${item.type}] ${item.key}: ${typeof item.value === 'string' ? item.value : JSON.stringify(item.value)}`)
-      : []
+    let attempt = 0
+    while (attempt <= MAX_STREAM_RETRY) {
+      streamAbortController = new AbortController()
+      const hasRetried = attempt > 0
+      let shouldRetry = false
 
-    const kbContext = (activeConversationAgent.value?.ragEnabled ?? true)
-      ? knowledgeBaseStore.knowledgeBases
-          .filter((kb) => kb.status === 'active' && kb.indexStatus === 'ready')
-          .slice(0, 5)
-          .map((kb) => `知识库「${kb.name}」(${kb.documentCount} 文档, ${kb.chunkCount} chunks)`)
-      : []
+      try {
+        await orchestrator.streamReply({
+          userId: userStore.userInfo?.id,
+          agent: activeConversationAgent.value,
+          conversation: conv,
+          recentMessages: activeRecentMessages.value,
+          knowledgeBaseId: knowledgeBaseId.value || undefined,
+          signal: streamAbortController.signal,
+          callbacks: {
+            onChunk: (chunk) => {
+              pendingAssistantText += chunk
+              if (!typingTimer) applyTypingStep()
+            },
+            onMeta: (meta) => {
+              const target = conv.messages.find(m => m.id === assistantMsg.id)
+              if (!target) return
 
-    const retrievalContext = [
-      memoryContext.length ? `长期记忆：\n${memoryContext.join('\n')}` : '',
-      kbContext.length ? `可用知识库：\n${kbContext.join('\n')}` : '',
-      conv.summary ? `会话摘要：${conv.summary}` : '',
-    ].filter(Boolean)
+              const existingToolCalls = (target.metadata?.toolCalls || []) as ToolCallRecord[]
+              const incomingToolCalls = (meta?.toolCalls || []) as ToolCallRecord[]
+              const toolMap = new Map<string, ToolCallRecord>()
 
-    const chatMessages = [
-      { role: 'system' as const, content: activeConversationAgent.value?.systemPrompt || DEFAULT_SYSTEM_PROMPT },
-      ...(conv.summary ? [{ role: 'system' as const, content: `会话摘要：${conv.summary}` }] : []),
-      ...retrievalContext.map((content) => ({ role: 'system' as const, content })),
-      ...activeRecentMessages.value.map(m => ({
-        role: m.role === 'assistant' ? ('assistant' as const) : ('user' as const),
-        content: m.content,
-      })),
-    ]
+              existingToolCalls.forEach((item) => {
+                if (item?.id) toolMap.set(item.id, item)
+              })
+              incomingToolCalls.forEach((item) => {
+                if (!item?.id) return
+                const prev = toolMap.get(item.id) || {}
+                toolMap.set(item.id, { ...prev, ...item })
+              })
 
-    await api.gpt.streamChatSSE(chatMessages, {
-      onChunk: chunk => {
-        pendingAssistantText += chunk
-        if (!typingTimer) applyTypingStep()
-      },
-      onMeta: meta => {
-        const target = conv.messages.find(m => m.id === assistantMsg.id)
-        if (!target) return
-        const citations = (meta?.metadata?.citations || meta?.citations || []) as any[]
-        target.metadata = {
-          ...(target.metadata || {}),
-          citations,
-          retrieval: {
-            ...(target.metadata?.retrieval || {}),
-            hits: citations,
-            citations,
+              target.metadata = {
+                ...(target.metadata || {}),
+                ...meta,
+                retrieval: {
+                  ...(target.metadata?.retrieval || {}),
+                  ...(meta?.retrieval || {}),
+                },
+                toolCalls: [...toolMap.values()],
+              }
+              target.updatedAt = Date.now()
+              saveConversations()
+              refreshToolLogs()
+            },
+            onDone: (text) => {
+              pendingAssistantText = text || pendingAssistantText
+              streamFinished = true
+              if (!typingTimer) applyTypingStep()
+              updateConversationSummary(conv)
+              if (activeConversationAgent.value?.memoryEnabled ?? true) {
+                syncMemoryFromConversation(conv)
+              }
+              streamAbortController = null
+            },
+            onError: (err) => {
+              stopTyping()
+              if (err.name === 'AbortError') {
+                const stoppedMsg = conv.messages.find(m => m.id === assistantMsg.id)
+                if (stoppedMsg) {
+                  stoppedMsg.status = 'completed'
+                  stoppedMsg.updatedAt = Date.now()
+                  saveConversations()
+                }
+                return
+              }
+
+              if (!hasRetried) {
+                shouldRetry = true
+                ElMessage.warning('流式响应中断，正在自动重试...')
+                return
+              }
+
+              generatingConversationId.value = null
+              activeReplyMessageId.value = null
+              streamAbortController = null
+              ElMessage.error(err.message || '回复失败')
+              const failedMsg = conv.messages.find(m => m.id === assistantMsg.id)
+              if (failedMsg) {
+                failedMsg.status = 'error'
+                failedMsg.updatedAt = Date.now()
+                saveConversations()
+              }
+            },
           },
-        }
-        target.updatedAt = Date.now()
-        saveConversations()
-      },
-      onDone: text => {
-        pendingAssistantText = text || pendingAssistantText
-        streamFinished = true
-        if (!typingTimer) applyTypingStep()
-        updateConversationSummary(conv)
-        if (activeConversationAgent.value?.memoryEnabled ?? true) {
-          syncMemoryFromConversation(conv)
-        }
-        streamAbortController = null
-      },
-      onError: err => {
-        stopTyping()
-        if (err.name === 'AbortError') {
-          const stoppedMsg = conv.messages.find(m => m.id === assistantMsg.id)
-          if (stoppedMsg) {
-            stoppedMsg.status = 'completed'
-            stoppedMsg.updatedAt = Date.now()
-            saveConversations()
-          }
-          return
-        }
-        generatingConversationId.value = null
-        activeReplyMessageId.value = null
-        streamAbortController = null
-        ElMessage.error(err.message || '回复失败')
-        const failedMsg = conv.messages.find(m => m.id === assistantMsg.id)
-        if (failedMsg) {
-          failedMsg.status = 'error'
-          failedMsg.updatedAt = Date.now()
-          saveConversations()
-        }
-      },
-    }, {
-      userId: userStore.userInfo?.id,
-      agentId: activeAgentId.value || undefined,
-      knowledgeBaseId: knowledgeBaseId.value || undefined,
-      signal: streamAbortController.signal,
-    })
+        })
+
+        if (!shouldRetry) break
+      } catch (err) {
+        if (attempt >= MAX_STREAM_RETRY) throw err
+        shouldRetry = true
+      }
+
+      if (!shouldRetry) break
+      attempt += 1
+      await new Promise((resolve) => setTimeout(resolve, 350))
+    }
   }
 
   const startRecording = async () => {
@@ -534,6 +618,10 @@ export function useChatPage() {
 
   watch(conversationItems, saveConversations, { deep: true })
 
+  watch(ragStrategy, (strategy) => {
+    orchestrator.setRagStrategy(strategy)
+  }, { immediate: true })
+
   watch(
     [activeConversationId, () => agentStore.agents.length],
     () => {
@@ -569,6 +657,8 @@ export function useChatPage() {
     conversationItems,
     activeConversationId,
     activeMessages,
+    visibleConversationItems,
+    hasMoreMessages,
     activeStreamingMessageId,
     isActiveConversationGenerating,
     pageTitle: '智能体对话',
@@ -587,6 +677,10 @@ export function useChatPage() {
     voiceModeLabel: '语音',
     recordingHint: '正在录音，松开发送',
     holdHint: '按住说话',
+    ragStrategy,
+    setRagStrategy: (strategy: RagStrategy) => { ragStrategy.value = strategy },
+    ragStrategyOptions: orchestrator.getAvailableRagStrategies(),
+    toolCallLogs,
     agentOptions: computed(() => agentStore.agents),
     activeAgentId,
     activeAgent: activeConversationAgent,
@@ -601,6 +695,8 @@ export function useChatPage() {
     },
     selectConversation,
     createConversation: createConversationHandler,
+    loadMoreConversations,
+    loadMoreMessages,
     handleSendMessage,
     startRecording,
     stopRecording,

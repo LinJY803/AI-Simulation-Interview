@@ -34,6 +34,15 @@
           <div class="item-preview">继续对话 · 点击查看消息</div>
         </div>
       </button>
+
+      <button
+        v-if="hasMore"
+        class="load-more-btn"
+        type="button"
+        @click="$emit('load-more')"
+      >
+        加载更多会话
+      </button>
     </div>
   </aside>
 </template>
@@ -54,15 +63,22 @@ const props = defineProps<{
   title: string
   createLabel: string
   searchPlaceholder: string
+  totalCount?: number
 }>()
 
-defineEmits<{ select: [string]; create: [] }>()
+defineEmits<{ select: [string]; create: []; 'load-more': [] }>()
 const keyword = ref('')
 
 const filteredItems = computed(() => {
   const q = keyword.value.trim().toLowerCase()
   if (!q) return props.items
   return props.items.filter(i => i.title.toLowerCase().includes(q))
+})
+
+const hasMore = computed(() => {
+  if (keyword.value.trim()) return false
+  const total = props.totalCount ?? props.items.length
+  return props.items.length < total
 })
 
 const formatTime = (ts: number) => new Date(ts).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -117,6 +133,14 @@ const formatTime = (ts: number) => new Date(ts).toLocaleString('zh-CN', { month:
   gap: 10px;
   overflow: auto;
   padding-right: 2px;
+}
+.load-more-btn {
+  border: 1px dashed #d2d7de;
+  border-radius: 14px;
+  background: rgba(255,255,255,.72);
+  color: #6b7280;
+  padding: 10px;
+  cursor: pointer;
 }
 .item {
   display: flex;

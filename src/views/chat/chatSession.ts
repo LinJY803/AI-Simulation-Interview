@@ -1,6 +1,6 @@
 import type { ChatConversation, ChatMessage } from '@/types/chat'
 
-export const CHAT_CONVERSATIONS_STORAGE_KEY = 'ai-chat-conversations'
+export const CHAT_CONVERSATIONS_STORAGE_KEY = 'ai-chat-conversations' // 基础 key，实际按 userId 做隔离
 export const CHAT_CONTEXT_LIMIT = 14
 export const CHAT_SUMMARY_TRIGGER_COUNT = 18
 

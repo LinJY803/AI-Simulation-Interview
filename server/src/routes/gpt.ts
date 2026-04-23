@@ -65,8 +65,9 @@ router.delete('/agents/:id', (req: Request, res: Response) => {
 
 router.get('/analysis/:id', async (req: Request, res: Response) => {
   const { id } = req.params
+  const currentUserId = (req as any).user?.userId
   const record = interviewStorage.findById(id)
-  if (!record) return res.status(404).json({ code: 404, success: false, message: '面试记录不存在' })
+  if (!record || record.userId !== currentUserId) return res.status(404).json({ code: 404, success: false, message: '面试记录不存在' })
   if (record.analysis) return res.json({ code: 200, success: true, message: '请求成功', data: record.analysis })
   try {
     const analysis = await analyzeInterview(record.messages)
@@ -78,13 +79,17 @@ router.get('/analysis/:id', async (req: Request, res: Response) => {
 })
 
 router.post('/stream', async (req: Request, res: Response) => {
-  const { messages, model, temperature, provider, userId, agentId, knowledgeBaseId } = req.body
-  const currentUserId = userId || (req as any).user?.userId
+  const { messages, model, temperature, provider, agentId, knowledgeBaseId } = req.body
+  const currentUserId = (req as any).user?.userId
   const allAgents = agentStorage.list(currentUserId)
   const agent = agentId ? allAgents.find((item) => item.id === agentId) : allAgents[0]
 
   const selectedKnowledgeBaseId = knowledgeBaseId || agent?.defaultKnowledgeBaseId
-  const kb = selectedKnowledgeBaseId ? knowledgeBaseStore.knowledgeBases.find((item) => item.id === selectedKnowledgeBaseId) : undefined
+  const kb = selectedKnowledgeBaseId
+    ? knowledgeBaseStore.knowledgeBases.find((item) => item.id === selectedKnowledgeBaseId && item.userId === currentUserId)
+    : undefined
+
+  const safeKnowledgeBaseId = kb?.id
 
   const orchestrator = new AgentOrchestrator({
     messages: messages || [],
@@ -93,7 +98,7 @@ router.post('/stream', async (req: Request, res: Response) => {
     model,
     temperature,
     provider: provider === 'ollama' ? 'ollama' : 'openai',
-    knowledgeBaseId: selectedKnowledgeBaseId,
+    knowledgeBaseId: safeKnowledgeBaseId,
     knowledgeBaseName: kb?.name,
   })
 

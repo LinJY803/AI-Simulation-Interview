@@ -618,6 +618,18 @@ export const api = {
     },
 
     /**
+     * 取消面试（用于路由离开等场景，不生成 completed 统计）
+     */
+    cancelInterview: async (
+      interviewId: string,
+    ): Promise<ApiResponse<{ status: "canceled" }>> => {
+      if (MOCK_MODE) {
+        return mockApiResponse({ status: "canceled" });
+      }
+      return request.post(`/interview/${interviewId}/cancel`);
+    },
+
+    /**
      * 获取面试历史列表（分页）
      * @param page  - 页码
      * @param limit - 每页数量

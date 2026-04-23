@@ -6,6 +6,18 @@ export interface ChatMessageMetadata {
   toolName?: string
   toolArgs?: Record<string, unknown>
   toolResult?: unknown
+  toolCalls?: Array<{
+    id: string
+    toolName: string
+    input: Record<string, unknown>
+    output?: unknown
+    status: 'running' | 'success' | 'error'
+    startedAt: number
+    finishedAt?: number
+    error?: string
+    durationMs?: number
+  }>
+  ragStrategy?: 'bm25' | 'vector' | 'hybrid'
   retrieval?: {
     query?: string
     sourceId?: string
